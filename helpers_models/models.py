@@ -51,17 +51,26 @@ def load_dataset(dataset: MLDataset,
         transform=transform
     )
 
-    # Initiate Dataloader
+    # Determine number of workers based on CPU count
+    num_workers = min(4, os.cpu_count() if os.cpu_count() else 2)
+    
+    # Initiate Dataloader with optimizations
     train_loader = DataLoader(
         dataset=train_dataset,
         batch_size=batch_size,
-        shuffle=True
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=torch.cuda.is_available(),  # Speed up GPU transfer
+        persistent_workers=True if num_workers > 0 else False
     )
 
     test_loader = DataLoader(
         dataset=test_dataset,
         batch_size=batch_size,
-        shuffle=False
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=torch.cuda.is_available(),
+        persistent_workers=True if num_workers > 0 else False
     )
 
     return train_loader, test_loader
@@ -95,16 +104,31 @@ class DenseModelHelper:
               loader: DataLoader,
               optimizer: optim.Optimizer):
 
+        model.train()
+        
+        # Enable mixed precision training for speed
+        scaler = torch.cuda.amp.GradScaler() if torch.cuda.is_available() else None
+        
         for epoch in range(epochs):
-
-            model.train()
             for data, label in tqdm(loader, desc=f"Training {model_name} ({epoch+1}/{epochs})"):
-                data, label = data.to(DEVICE), label.to(DEVICE)
-                optimizer.zero_grad()
-                output = model(data)
-                loss = F.cross_entropy(output, label)
-                loss.backward()
-                optimizer.step()
+                data, label = data.to(DEVICE, non_blocking=True), label.to(DEVICE, non_blocking=True)
+                
+                optimizer.zero_grad(set_to_none=True)  # Faster than zero_grad()
+                
+                # Use automatic mixed precision if CUDA is available
+                if scaler is not None:
+                    with torch.cuda.amp.autocast():
+                        output = model(data)
+                        loss = F.cross_entropy(output, label)
+                    
+                    scaler.scale(loss).backward()
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    output = model(data)
+                    loss = F.cross_entropy(output, label)
+                    loss.backward()
+                    optimizer.step()
 
         return model
 
@@ -119,7 +143,7 @@ class DenseModelHelper:
         total = 0
         with torch.no_grad():
             for data, target in test_loader:
-                data, target = data.to(DEVICE), target.to(DEVICE)
+                data, target = data.to(DEVICE, non_blocking=True), target.to(DEVICE, non_blocking=True)
                 outputs = model(data)
                 _, predicted = torch.max(outputs.data, 1)
                 total += target.size(0)
