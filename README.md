@@ -1,1 +1,0 @@
-# static-sbfl-for-nn
