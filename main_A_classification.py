@@ -340,8 +340,10 @@ def save_results_to_csv(results, save_dir='models_sus_prediction'):
 @click.option('--random-state', default=42, type=int,
               help='Random state for reproducibility (default: 42)')
 @click.option('--threshold-percentile', default=80, type=int,
-              help='Percentile threshold for binary classification (default: 80)') 
-def main(data_path, test_size, random_state, threshold_percentile):
+              help='Percentile threshold for binary classification (default: 80)')
+@click.option('--max-models', default=100, type=int,
+              help='Maximum number of models to use for training and testing (default: None, use all models)')
+def main(data_path, test_size, random_state, threshold_percentile, max_models):
     """Train classification models on suspiciousness prediction dataset."""
     
     # Load data
@@ -349,6 +351,15 @@ def main(data_path, test_size, random_state, threshold_percentile):
     data = pd.read_pickle(data_path)
     X = data['features']
     y = data['targets']
+    
+    # Limit the number of models if specified
+    if max_models is not None and max_models > 0:
+        logging.info(f"Limiting dataset to first {max_models} models")
+        X = X[:max_models]
+        y = y[:max_models]
+        logging.info(f"Dataset size after limiting: {len(X)} samples")
+    else:
+        logging.info(f"Using full dataset: {len(X)} samples")
     
     # Split the data
     X_train, X_test, y_train, y_test = train_test_split(

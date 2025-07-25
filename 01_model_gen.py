@@ -6,6 +6,8 @@ trains them on the MNIST dataset, and saves the trained models to disk.
 """
 import random
 import time
+import os
+import glob
 import torch.optim as optim
 
 from helpers_general.logging import logging
@@ -15,6 +17,41 @@ from helpers_models.randomization import generate_rand_dense_seq
 import click
 
 
+def find_highest_model_index(output_dir: str) -> int:
+    """Find the highest existing model index in the output directory."""
+    if not os.path.exists(output_dir):
+        logging.info(f"Output directory {output_dir} does not exist, starting from index 0")
+        return -1
+    
+    # Look for model files with pattern model_*.pth
+    model_files = glob.glob(os.path.join(output_dir, "model_*.pth"))
+    
+    if not model_files:
+        logging.info(f"No existing models found in {output_dir}, starting from index 0")
+        return -1
+    
+    # Extract model indices from filenames
+    model_indices = []
+    for model_file in model_files:
+        filename = os.path.basename(model_file)
+        # Extract number from filename like "model_123.pth"
+        try:
+            index_str = filename.replace("model_", "").replace(".pth", "")
+            model_indices.append(int(index_str))
+        except ValueError:
+            # Skip files that don't match the expected pattern
+            continue
+    
+    if not model_indices:
+        logging.info(f"No valid model files found in {output_dir}, starting from index 0")
+        return -1
+    
+    highest_index = max(model_indices)
+    logging.info(f"Found {len(model_indices)} existing models in {output_dir}")
+    logging.info(f"Highest existing model index: {highest_index}")
+    return highest_index
+
+
 def generate_and_train_models(num_models: int,
                               epochs: int,
                               learning_rate: float,
@@ -22,11 +59,19 @@ def generate_and_train_models(num_models: int,
                               neuron_bounds: tuple[int, int],
                               output_dir: str):
     """Generate random models, train them and save to disk."""
+    # Find the highest existing model index
+    highest_existing_index = find_highest_model_index(output_dir)
+    start_index = highest_existing_index + 1
+    end_index = start_index + num_models
+    
+    logging.info(f"Starting model generation from index {start_index} to {end_index - 1}")
+    logging.info(f"Will generate {num_models} new models")
+    
     # Load dataset once before the loop
     train_loader, test_loader = load_dataset(MLDataset.MNIST)
 
     # Main generation loop
-    for model_idx in range(num_models):
+    for model_idx in range(start_index, end_index):
 
         # Generate random architecture
         num_layers = random.randint(*layer_bounds)
@@ -71,7 +116,7 @@ def generate_and_train_models(num_models: int,
 
 @click.command()
 @click.option('--num-models', 
-              default=600, 
+              default=1000, 
               help='Number of models to generate')
 @click.option('--epochs', 
               default=1, 
