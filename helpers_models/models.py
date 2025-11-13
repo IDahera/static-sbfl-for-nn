@@ -98,6 +98,7 @@ class DenseModel(torch.nn.Module):
 
 
 class DenseModelHelper:
+    @staticmethod
     def train(model: DenseModel,
               model_name: str,
               epochs: int,
@@ -106,8 +107,8 @@ class DenseModelHelper:
 
         model.train()
         
-        # Enable mixed precision training for speed
-        scaler = torch.cuda.amp.GradScaler() if torch.cuda.is_available() else None
+        # Enable mixed precision training for speed (using new API)
+        scaler = torch.amp.GradScaler('cuda') if torch.cuda.is_available() else None
         
         for epoch in range(epochs):
             for data, label in tqdm(loader, desc=f"Training {model_name} ({epoch+1}/{epochs})"):
@@ -117,7 +118,7 @@ class DenseModelHelper:
                 
                 # Use automatic mixed precision if CUDA is available
                 if scaler is not None:
-                    with torch.cuda.amp.autocast():
+                    with torch.amp.autocast('cuda'):
                         output = model(data)
                         loss = F.cross_entropy(output, label)
                     
@@ -132,11 +133,13 @@ class DenseModelHelper:
 
         return model
 
+    @staticmethod
     def evaluate(model: DenseModel,
                  test_loader: DataLoader) -> float:
         """Evaluate model accuracy on test data.
 
-        This is a custom evaluation method, separate from the built-in eval() that PyTorch models have.
+        This is a custom evaluation method, separate from the built-in 
+        eval() that PyTorch models have.
         """
         model.eval()
         correct = 0
@@ -153,6 +156,7 @@ class DenseModelHelper:
 
         return accuracy
 
+    @staticmethod
     def save_model(model: DenseModel,
                    model_idx: int,
                    num_layers: int,
