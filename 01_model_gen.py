@@ -10,6 +10,7 @@ import time
 import os
 import glob
 import json
+import yaml
 import torch.optim as optim
 
 from helpers_general.logging import logging
@@ -21,14 +22,19 @@ import click
 
 
 def load_config(config_path: str) -> dict:
-    """Load configuration from JSON file."""
+    """Load configuration from JSON or YAML file."""
     if not os.path.exists(config_path):
         return None
 
     try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except (IOError, json.JSONDecodeError) as e:
+        # Check file extension to determine format
+        if config_path.endswith('.yaml') or config_path.endswith('.yml'):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return yaml.safe_load(f)
+        else:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except (IOError, json.JSONDecodeError, yaml.YAMLError) as e:
         logging.error(f"Error loading config: {e}")
         return None
 
@@ -217,91 +223,111 @@ def generate_and_train_models(dataset: MLDataset,
 
 
 @click.command()
-@click.option('--num-models',
-              default=1000,
-              help='Number of models to generate')
-@click.option('--epochs',
-              default=1,
-              help='Number of training epochs')
-@click.option('--min-layers',
-              default=5,
-              help='Minimum number of layers')
-@click.option('--max-layers',
-              default=25,
-              help='Maximum number of layers')
-@click.option('--min-neurons',
-              default=10,
-              help='Minimum neurons per layer')
-@click.option('--max-neurons',
-              default=50,
-              help='Maximum neurons per layer')
-@click.option('--learning-rate',
-              default=0.001,
-              help='Learning rate for training')
+@click.option('--config-dir',
+              default='configs/model_gen',
+              help='Directory containing config YAML files')
 @click.option('--output-dir',
-              default='models/',
+              default='output_models',
               help='Base directory to save models')
-def main(num_models,
-         epochs,
-         min_layers,
-         max_layers,
-         min_neurons,
-         max_neurons,
-         learning_rate,
-         output_dir):
-    """Generate and train models with random architectures."""
+def main(config_dir, output_dir):
+    """Generate and train models based on configuration files."""
 
-    logging.info("Starting sequential model generation")
+    logging.info("Starting sequential model generation from config files")
     
-    # Create current configuration
-    current_config = {
-        'min_layers': min_layers,
-        'max_layers': max_layers,
-        'min_neurons': min_neurons,
-        'max_neurons': max_neurons,
-        'learning_rate': learning_rate,
-        'epochs': epochs
-    }
+    # Find all YAML config files in the config directory
+    config_files = (glob.glob(os.path.join(config_dir, '*.yaml')) +
+                    glob.glob(os.path.join(config_dir, '*.yml')))
     
-    # Train on both MNIST and Fashion MNIST
-    datasets_to_train = [
-        (MLDataset.MNIST, 'mnist'),
-        (MLDataset.FMNIST, 'fmnist')
-    ]
+    if not config_files:
+        logging.error(f"No config files found in {config_dir}")
+        return
     
-    for dataset, dataset_name in datasets_to_train:
+    config_files.sort()
+    config_names = [os.path.basename(f) for f in config_files]
+    logging.info(f"Found {len(config_files)} config file(s): {config_names}")
+    
+    # Process each config file
+    for config_file in config_files:
+        config_name = os.path.splitext(os.path.basename(config_file))[0]
         logging.info(f"\n{'='*60}")
-        logging.info(f"Processing {dataset_name.upper()} dataset")
+        logging.info(f"Processing configuration: {config_name}")
         logging.info(f"{'='*60}\n")
         
-        # Create dataset-specific output directory
-        dataset_output_dir = os.path.join(output_dir, dataset_name)
-        config_path = os.path.join(dataset_output_dir, 'config.json')
+        # Load configuration from YAML file
+        config = load_config(config_file)
+        if config is None:
+            logging.error(
+                f"Failed to load config from {config_file}, skipping")
+            continue
         
-        # Ensure output directory exists
-        os.makedirs(dataset_output_dir, exist_ok=True)
+        # Extract parameters from config
+        num_models = config.get('num_models', 1000)
+        epochs = config.get('epochs', 1)
+        min_layers = config.get('min_layers', 5)
+        max_layers = config.get('max_layers', 25)
+        min_neurons = config.get('min_neurons', 10)
+        max_neurons = config.get('max_neurons', 50)
+        learning_rate = config.get('learning_rate', 0.001)
         
-        # Load existing config
-        existing_config = load_config(config_path)
+        logging.info(
+            f"Config parameters: num_models={num_models}, "
+            f"epochs={epochs}, layers=[{min_layers},{max_layers}], "
+            f"neurons=[{min_neurons},{max_neurons}], lr={learning_rate}")
+        
+        # Create current configuration for comparison
+        current_config = {
+            'min_layers': min_layers,
+            'max_layers': max_layers,
+            'min_neurons': min_neurons,
+            'max_neurons': max_neurons,
+            'learning_rate': learning_rate,
+            'epochs': epochs
+        }
+        
+        # Train on both MNIST and Fashion MNIST
+        datasets_to_train = [
+            (MLDataset.MNIST, 'mnist'),
+            (MLDataset.FMNIST, 'fmnist')
+        ]
+        
+        for dataset, dataset_name in datasets_to_train:
+            logging.info(f"\n{'-'*40}")
+            logging.info(f"Processing {dataset_name.upper()} dataset")
+            logging.info(f"{'-'*40}\n")
+            
+            # Create config-specific output directory structure
+            # output_models/config_50/mnist/ or output_models/config_50/fmnist/
+            config_output_dir = os.path.join(output_dir, config_name)
+            dataset_output_dir = os.path.join(config_output_dir, dataset_name)
+            config_path = os.path.join(dataset_output_dir, 'config.json')
+            
+            # Ensure output directory exists
+            os.makedirs(dataset_output_dir, exist_ok=True)
+            
+            # Load existing config
+            existing_config = load_config(config_path)
 
-        # Check if configuration has changed and handle it
-        check_configuration(dataset_name, dataset_output_dir,
-                            existing_config, current_config)
+            # Check if configuration has changed and handle it
+            check_configuration(dataset_name, dataset_output_dir,
+                                existing_config, current_config)
 
-        # Save current configuration
-        save_config(config_path, current_config)
-        
-        # Generate and train models
-        generate_and_train_models(
-            dataset=dataset,
-            num_models=num_models,
-            epochs=epochs,
-            learning_rate=learning_rate,
-            layer_bounds=(min_layers, max_layers),
-            neuron_bounds=(min_neurons, max_neurons),
-            output_dir=dataset_output_dir)
+            # Save current configuration
+            save_config(config_path, current_config)
+            
+            # Generate and train models
+            generate_and_train_models(
+                dataset=dataset,
+                num_models=num_models,
+                epochs=epochs,
+                learning_rate=learning_rate,
+                layer_bounds=(min_layers, max_layers),
+                neuron_bounds=(min_neurons, max_neurons),
+                output_dir=dataset_output_dir)
     
-    logging.info("\nSequential model generation completed for all datasets")
+    logging.info("\n" + "="*60)
+    logging.info(
+        "Sequential model generation completed for all configs and datasets")
+    logging.info("="*60)
 
 
 if __name__ == "__main__":

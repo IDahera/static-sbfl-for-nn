@@ -14,6 +14,7 @@ The workflow is:
 """
 import pickle
 import torch
+import os
 from tqdm import tqdm
 
 from helpers_preprocess.dataset_generation import (
@@ -21,13 +22,6 @@ from helpers_preprocess.dataset_generation import (
 from helpers_general.file_handling import get_pkl_files, natural_sort_key
 from helpers_general.gpu import DEVICE
 
-# Configuration constants
-DIR_SUS = "models_image_classification/mnist"        # Directory containing suspiciousness value files
-DIR_MODEL = "models_image_classification/mnist"      # Directory containing model files
-# output directory for the dataset
-
-FILE_OUTPUT_TORCH = "models_image_classification/mnist/dataset/mnist_dataset_torch.pth"  # Output dataset path
-FILE_OUTPUT_NUMPY = "models_image_classification/mnist/dataset/mnist_dataset_numpy.pkl"  # Output dataset path
 LOGGING = False                 # Enable/disable verbose logging
 
 
@@ -47,16 +41,16 @@ def load_model(model_file):
     return model
 
 
-def load_model_and_sus_values(sus_file):
+def load_model_and_sus_values(sus_file, dir_sus, dir_model):
     """Load model and suspiciousness values for a given file."""
     sus_values = load_sus_values(sus_file)
     model_file = sus_file.replace(
-        DIR_SUS, DIR_MODEL).replace("_sus.pkl", ".pth")
+        dir_sus, dir_model).replace("_sus.pkl", ".pth")
     model = load_model(model_file)
     return model, sus_values
 
 
-def create_suspiciousness_dataset(sus_files):
+def create_suspiciousness_dataset(sus_files, dir_model):
     """Process all suspiciousness files and create a dataset.
 
     This function is the main processing pipeline that:
@@ -70,13 +64,15 @@ def create_suspiciousness_dataset(sus_files):
     -----------
     sus_files : list
         List of suspiciousness value files to process
+    dir_model : str
+        Directory containing the model files
 
     Returns:
     --------
     SusPredictionDataset
         Dataset containing features and suspiciousness values for all neurons
     """
-    # Initialize empty stacks - these will accumulate data from all models and layers
+    # Initialize empty stacks - accumulate data from all models and layers
     stacks = DatasetEntries()
 
     # Process each file
@@ -96,8 +92,10 @@ def create_suspiciousness_dataset(sus_files):
                 list(sus_values.keys()).index(layer_name)).to(DEVICE)
 
             if LOGGING:
-                print(
-                    f"Layer name: {layer_name}, index: {layer_idx.item() if layer_idx.numel() > 0 else 0}")
+                layer_info = (
+                    f"Layer name: {layer_name}, index: "
+                    f"{layer_idx.item() if layer_idx.numel() > 0 else 0}")
+                print(layer_info)
 
             model_file = sus_file.replace("_sus.pkl", ".pth")
 
@@ -113,20 +111,108 @@ def create_suspiciousness_dataset(sus_files):
 
 
 if __name__ == "__main__":
-    # Get list of model files
-    sus_files = get_pkl_files(DIR_SUS)
-    sus_files.sort(key=natural_sort_key)
+    import click
 
-    print(f"Found {len(sus_files)} .pkl files in {DIR_SUS}")
-
-    # Create dataset from suspiciousness values
-    dataset = create_suspiciousness_dataset(sus_files)
-    torch.save(dataset, FILE_OUTPUT_TORCH)
-
-    features, targets = dataset.get_numpy()
-    numpy_object = {
-        'features': features,
-        'targets': targets
-    }
-    with open(FILE_OUTPUT_NUMPY, 'wb') as f:
-        pickle.dump(numpy_object, f)
+    @click.command()
+    @click.option('--sus-dir', default="output_sus_values",
+                  help='Base directory containing suspiciousness value files.')
+    @click.option('--models-dir', default="output_models",
+                  help='Base directory containing model files.')
+    @click.option('--output-dir', default="output_sus_datasets",
+                  help='Base directory to save datasets.')
+    def main(sus_dir: str, models_dir: str, output_dir: str):
+        """Transform suspiciousness values into datasets."""
+        
+        # Find all config subdirectories in the sus directory
+        if not os.path.exists(sus_dir):
+            print(f"Error: Suspiciousness directory {sus_dir} does not exist")
+            return
+        
+        # Get all subdirectories (each representing a config)
+        config_dirs = [
+            d for d in os.listdir(sus_dir)
+            if os.path.isdir(os.path.join(sus_dir, d))
+        ]
+        
+        if not config_dirs:
+            print(f"No config subdirectories found in {sus_dir}")
+            return
+        
+        config_dirs.sort()
+        print(f"Found {len(config_dirs)} config(s): {config_dirs}")
+        
+        # Process each config directory
+        for config_name in config_dirs:
+            config_sus_path = os.path.join(sus_dir, config_name)
+            config_models_path = os.path.join(models_dir, config_name)
+            print(f"\n{'='*60}")
+            print(f"Processing config: {config_name}")
+            print(f"{'='*60}\n")
+            
+            # Find dataset subdirectories (mnist, fmnist, etc.)
+            dataset_dirs = [
+                d for d in os.listdir(config_sus_path)
+                if os.path.isdir(os.path.join(config_sus_path, d))
+            ]
+            
+            if not dataset_dirs:
+                print(f"No dataset subdirectories found in {config_sus_path}")
+                continue
+            
+            # Process each dataset directory
+            for dataset_name in dataset_dirs:
+                dataset_sus_path = os.path.join(config_sus_path, dataset_name)
+                dataset_models_path = os.path.join(
+                    config_models_path, dataset_name)
+                
+                print(f"\n{'-'*40}")
+                print(f"Processing dataset: {dataset_name}")
+                print(f"{'-'*40}\n")
+                
+                # Get list of suspiciousness files
+                sus_files = get_pkl_files(dataset_sus_path)
+                sus_files.sort(key=natural_sort_key)
+                
+                if not sus_files:
+                    print(f"No .pkl files found in {dataset_sus_path}")
+                    continue
+                
+                print(f"Found {len(sus_files)} .pkl files in "
+                      f"{dataset_sus_path}")
+                
+                # Create dataset from suspiciousness values
+                dataset = create_suspiciousness_dataset(
+                    sus_files, dataset_models_path)
+                
+                # Create output directory for this config and dataset
+                dataset_output_dir = os.path.join(
+                    output_dir, config_name, dataset_name)
+                os.makedirs(dataset_output_dir, exist_ok=True)
+                
+                # Define output paths
+                file_output_torch = os.path.join(
+                    dataset_output_dir,
+                    f"{dataset_name}_dataset_torch.pth")
+                file_output_numpy = os.path.join(
+                    dataset_output_dir,
+                    f"{dataset_name}_dataset_numpy.pkl")
+                
+                # Save PyTorch dataset
+                torch.save(dataset, file_output_torch)
+                print(f"Saved PyTorch dataset to: {file_output_torch}")
+                
+                # Save NumPy dataset
+                features, targets = dataset.get_numpy()
+                numpy_object = {
+                    'features': features,
+                    'targets': targets
+                }
+                with open(file_output_numpy, 'wb') as f:
+                    pickle.dump(numpy_object, f)
+                print(f"Saved NumPy dataset to: {file_output_numpy}")
+        
+        print(f"\n{'='*60}")
+        print("Dataset transformation completed for all configs and datasets")
+        print(f"{'='*60}")
+    
+    main()

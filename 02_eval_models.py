@@ -44,49 +44,106 @@ def expand_csv_file(model_name: str,
 
 
 @click.command()
-@click.option('--dir',
-              default="models_image_classification/mnist",
-              help='Directory to load models from.')
-@click.option('--csv',
-              default="models_image_classification/mnist/model_accuracies.csv",
-              help='CSV file to save accuracies.')
-def main(dir: str, csv: str):
+@click.option('--models-dir',
+              default="output_models",
+              help='Base directory containing model config subdirectories.')
+def main(models_dir: str):
 
-    with log_loading_all_models(dir):
-        model_files = get_pth_files(dir)
-        model_files.sort(key=natural_sort_key)
+    # Find all config subdirectories in the models directory
+    if not os.path.exists(models_dir):
+        print(f"Error: Models directory {models_dir} does not exist")
+        return
+    
+    # Get all subdirectories (each representing a config)
+    config_dirs = [d for d in os.listdir(models_dir)
+                   if os.path.isdir(os.path.join(models_dir, d))]
+    
+    if not config_dirs:
+        print(f"No config subdirectories found in {models_dir}")
+        return
+    
+    config_dirs.sort()
+    print(f"Found {len(config_dirs)} config(s): {config_dirs}")
+    
+    # Process each config directory
+    for config_name in config_dirs:
+        config_path = os.path.join(models_dir, config_name)
+        print(f"\n{'='*60}")
+        print(f"Processing config: {config_name}")
+        print(f"{'='*60}\n")
+        
+        # Find dataset subdirectories (mnist, fmnist, etc.)
+        dataset_dirs = [
+            d for d in os.listdir(config_path)
+            if os.path.isdir(os.path.join(config_path, d))
+        ]
+        
+        if not dataset_dirs:
+            print(f"No dataset subdirectories found in {config_path}")
+            continue
+        
+        # Process each dataset directory
+        for dataset_name in dataset_dirs:
+            dataset_path = os.path.join(config_path, dataset_name)
+            print(f"\n{'-'*40}")
+            print(f"Processing dataset: {dataset_name}")
+            print(f"{'-'*40}\n")
+            
+            with log_loading_all_models(dataset_path):
+                model_files = get_pth_files(dataset_path)
+                model_files.sort(key=natural_sort_key)
 
-    with log_loading_dataset(MLDataset.MNIST):
-        _, test_loader = load_dataset(MLDataset.MNIST)
+            if not model_files:
+                print(f"No model files found in {dataset_path}")
+                continue
 
-    # Check if the file exists and create with header if it doesn't
-    if not os.path.exists(csv):
-        create_csv_file(csv)
+            # Determine which dataset to use based on directory name
+            if dataset_name.lower() == 'mnist':
+                ml_dataset = MLDataset.MNIST
+            elif dataset_name.lower() == 'fmnist':
+                ml_dataset = MLDataset.FMNIST
+            else:
+                print(f"Unknown dataset type: {dataset_name}, skipping")
+                continue
 
-    pbar = get_evaluation_progress_bar(len(model_files))
-    for model_file in model_files:
-        with computation_progress_step(pbar, model_file):
+            with log_loading_dataset(ml_dataset):
+                _, test_loader = load_dataset(ml_dataset)
 
-            # Load the model
-            model: DenseModel = torch.load(model_file,
-                                           map_location=DEVICE,
-                                           weights_only=False)
+            # CSV file path for this dataset
+            csv_file = os.path.join(dataset_path, "model_accuracies.csv")
 
-            # Evaluate the model using custom evaluate method
-            acc = DenseModelHelper.evaluate(model,
-                                            test_loader)
+            # Check if the file exists and create with header if it doesn't
+            if not os.path.exists(csv_file):
+                create_csv_file(csv_file)
 
-            # Count the number of layers in the model
-            # Subtract 1 to exclude the model itself
-            num_layers = len(list(model.named_modules())) - 1
+            pbar = get_evaluation_progress_bar(len(model_files))
+            for model_file in model_files:
+                with computation_progress_step(pbar, model_file):
 
-            expand_csv_file(model_file,
-                            acc,
-                            num_layers,
-                            csv_file=csv)
+                    # Load the model
+                    model: DenseModel = torch.load(model_file,
+                                                   map_location=DEVICE,
+                                                   weights_only=False)
 
-            # Clean up to avoid memory issues
-            del model
+                    # Evaluate the model using custom evaluate method
+                    acc = DenseModelHelper.evaluate(model,
+                                                    test_loader)
+
+                    # Count the number of layers in the model
+                    # Subtract 1 to exclude the model itself
+                    num_layers = len(list(model.named_modules())) - 1
+
+                    expand_csv_file(model_file,
+                                    acc,
+                                    num_layers,
+                                    csv_file=csv_file)
+
+                    # Clean up to avoid memory issues
+                    del model
+    
+    print(f"\n{'='*60}")
+    print("Model evaluation completed for all configs and datasets")
+    print(f"{'='*60}")
 
 
 if __name__ == "__main__":
