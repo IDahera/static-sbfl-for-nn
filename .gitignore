@@ -11,9 +11,11 @@ raw/
 # Generated model files
 models_sus_prediction/
 models_image_classification/
+output_*/
 
 # Log files directory
 log/
+
 
 # =============================================================================
 # Python
