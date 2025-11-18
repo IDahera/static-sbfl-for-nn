@@ -233,33 +233,33 @@ def main(config_dir, output_dir):
     """Generate and train models based on configuration files."""
 
     logging.info("Starting sequential model generation from config files")
-    
+
     # Find all YAML config files in the config directory
     config_files = (glob.glob(os.path.join(config_dir, '*.yaml')) +
                     glob.glob(os.path.join(config_dir, '*.yml')))
-    
+
     if not config_files:
         logging.error(f"No config files found in {config_dir}")
         return
-    
+
     config_files.sort()
     config_names = [os.path.basename(f) for f in config_files]
     logging.info(f"Found {len(config_files)} config file(s): {config_names}")
-    
+
     # Process each config file
     for config_file in config_files:
         config_name = os.path.splitext(os.path.basename(config_file))[0]
         logging.info(f"\n{'='*60}")
         logging.info(f"Processing configuration: {config_name}")
         logging.info(f"{'='*60}\n")
-        
+
         # Load configuration from YAML file
         config = load_config(config_file)
         if config is None:
             logging.error(
                 f"Failed to load config from {config_file}, skipping")
             continue
-        
+
         # Extract parameters from config
         num_models = config.get('num_models', 1000)
         epochs = config.get('epochs', 1)
@@ -268,12 +268,12 @@ def main(config_dir, output_dir):
         min_neurons = config.get('min_neurons', 10)
         max_neurons = config.get('max_neurons', 50)
         learning_rate = config.get('learning_rate', 0.001)
-        
+
         logging.info(
             f"Config parameters: num_models={num_models}, "
             f"epochs={epochs}, layers=[{min_layers},{max_layers}], "
             f"neurons=[{min_neurons},{max_neurons}], lr={learning_rate}")
-        
+
         # Create current configuration for comparison
         current_config = {
             'min_layers': min_layers,
@@ -283,27 +283,27 @@ def main(config_dir, output_dir):
             'learning_rate': learning_rate,
             'epochs': epochs
         }
-        
+
         # Train on both MNIST and Fashion MNIST
         datasets_to_train = [
             (MLDataset.MNIST, 'mnist'),
             (MLDataset.FMNIST, 'fmnist')
         ]
-        
+
         for dataset, dataset_name in datasets_to_train:
             logging.info(f"\n{'-'*40}")
             logging.info(f"Processing {dataset_name.upper()} dataset")
             logging.info(f"{'-'*40}\n")
-            
+
             # Create config-specific output directory structure
             # output_models/config_50/mnist/ or output_models/config_50/fmnist/
             config_output_dir = os.path.join(output_dir, config_name)
             dataset_output_dir = os.path.join(config_output_dir, dataset_name)
             config_path = os.path.join(dataset_output_dir, 'config.json')
-            
+
             # Ensure output directory exists
             os.makedirs(dataset_output_dir, exist_ok=True)
-            
+
             # Load existing config
             existing_config = load_config(config_path)
 
@@ -313,7 +313,7 @@ def main(config_dir, output_dir):
 
             # Save current configuration
             save_config(config_path, current_config)
-            
+
             # Generate and train models
             generate_and_train_models(
                 dataset=dataset,
@@ -323,7 +323,7 @@ def main(config_dir, output_dir):
                 layer_bounds=(min_layers, max_layers),
                 neuron_bounds=(min_neurons, max_neurons),
                 output_dir=dataset_output_dir)
-    
+
     logging.info("\n" + "="*60)
     logging.info(
         "Sequential model generation completed for all configs and datasets")
