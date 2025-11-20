@@ -8,6 +8,7 @@ to a CSV file.
 import torch
 import click
 import os.path
+import time
 
 from tqdm import tqdm
 
@@ -71,6 +72,9 @@ def main(models_dir: str):
         print(f"\n{'='*60}")
         print(f"Processing config: {config_name}")
         print(f"{'='*60}\n")
+        
+        # Start timing for entire config evaluation
+        config_start_time = time.time()
         
         # Find dataset subdirectories (mnist, fmnist, etc.)
         dataset_dirs = [
@@ -140,6 +144,19 @@ def main(models_dir: str):
 
                     # Clean up to avoid memory issues
                     del model
+        
+        # Log total time for this config
+        config_duration = time.time() - config_start_time
+        config_duration_minutes = config_duration / 60
+        config_duration_hours = config_duration / 3600
+        
+        print(f"\n{'='*60}")
+        print(f"Configuration '{config_name}' evaluation completed")
+        print(f"Total evaluation time for all models in this config:")
+        print(f"  {config_duration:.2f} seconds")
+        print(f"  {config_duration_minutes:.2f} minutes")
+        print(f"  {config_duration_hours:.2f} hours")
+        print(f"{'='*60}\n")
     
     print(f"\n{'='*60}")
     print("Model evaluation completed for all configs and datasets")

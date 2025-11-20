@@ -15,6 +15,7 @@ The workflow is:
 import pickle
 import torch
 import os
+import time
 from tqdm import tqdm
 
 from helpers_preprocess.dataset_generation import (
@@ -134,6 +135,9 @@ if __name__ == "__main__":
             print(f"\n{'='*60}")
             print(f"Processing config: {config_name}")
             print(f"{'='*60}\n")
+            
+            # Start timing for entire config
+            config_start_time = time.time()
 
             # Find dataset subdirectories (mnist, fmnist, etc.)
             dataset_dirs = [
@@ -193,6 +197,19 @@ if __name__ == "__main__":
                 with open(file_output_numpy, 'wb') as f:
                     pickle.dump(numpy_object, f)
                 print(f"Saved NumPy dataset to: {file_output_numpy}")
+            
+            # Log total time for this config
+            config_duration = time.time() - config_start_time
+            config_duration_minutes = config_duration / 60
+            config_duration_hours = config_duration / 3600
+            
+            print(f"\n{'='*60}")
+            print(f"Configuration '{config_name}' transformation completed")
+            print(f"Total transformation time for all datasets in this config:")
+            print(f"  {config_duration:.2f} seconds")
+            print(f"  {config_duration_minutes:.2f} minutes")
+            print(f"  {config_duration_hours:.2f} hours")
+            print(f"{'='*60}\n")
 
         print(f"\n{'='*60}")
         print("Dataset transformation completed for all configs and datasets")

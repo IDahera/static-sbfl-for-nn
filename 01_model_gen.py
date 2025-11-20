@@ -252,6 +252,9 @@ def main(config_dir, output_dir):
         logging.info(f"\n{'='*60}")
         logging.info(f"Processing configuration: {config_name}")
         logging.info(f"{'='*60}\n")
+        
+        # Start timing for entire config
+        config_start_time = time.time()
 
         # Load configuration from YAML file
         config = load_config(config_file)
@@ -323,6 +326,19 @@ def main(config_dir, output_dir):
                 layer_bounds=(min_layers, max_layers),
                 neuron_bounds=(min_neurons, max_neurons),
                 output_dir=dataset_output_dir)
+        
+        # Log total time for this config
+        config_duration = time.time() - config_start_time
+        config_duration_minutes = config_duration / 60
+        config_duration_hours = config_duration / 3600
+        
+        logging.info(f"\n{'='*60}")
+        logging.info(f"Configuration '{config_name}' completed")
+        logging.info(f"Total training time for all models in this config:")
+        logging.info(f"  {config_duration:.2f} seconds")
+        logging.info(f"  {config_duration_minutes:.2f} minutes")
+        logging.info(f"  {config_duration_hours:.2f} hours")
+        logging.info(f"{'='*60}\n")
 
     logging.info("\n" + "="*60)
     logging.info(

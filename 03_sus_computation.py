@@ -187,6 +187,9 @@ def main(models_dir: str,
         print(f"Processing config: {config_name}")
         print(f"{'='*60}\n")
         
+        # Start timing for entire config
+        config_start_time = time.time()
+        
         # Create output directory for this config
         config_output_dir = os.path.join(output_dir, config_name)
         os.makedirs(config_output_dir, exist_ok=True)
@@ -295,6 +298,19 @@ def main(models_dir: str,
                         torch.cuda.empty_cache()
 
                     del model, sus_results
+        
+        # Log total time for this config
+        config_duration = time.time() - config_start_time
+        config_duration_minutes = config_duration / 60
+        config_duration_hours = config_duration / 3600
+        
+        print(f"\n{'='*60}")
+        print(f"Configuration '{config_name}' suspiciousness computation completed")
+        print(f"Total computation time for all models in this config:")
+        print(f"  {config_duration:.2f} seconds")
+        print(f"  {config_duration_minutes:.2f} minutes")
+        print(f"  {config_duration_hours:.2f} hours")
+        print(f"{'='*60}\n")
 
     print(f"\n{'='*60}")
     print("Suspiciousness computation completed for all configs!")
