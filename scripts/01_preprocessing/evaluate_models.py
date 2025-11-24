@@ -12,16 +12,16 @@ import time
 
 from tqdm import tqdm
 
-from helpers_models.models import (load_dataset,
-                                   DenseModel,
-                                   DenseModelHelper,
-                                   MLDataset)
-from helpers_models.logging import (log_loading_all_models,
-                                    log_loading_dataset,
-                                    computation_progress_step)
-from helpers_general.file_handling import (natural_sort_key,
-                                           get_pth_files)
-from helpers_general.gpu import DEVICE
+from sbfl_nn.models.architectures import (load_dataset,
+                                          DenseModel,
+                                          DenseModelHelper,
+                                          MLDataset)
+from sbfl_nn.models.training_logger import (log_loading_all_models,
+                                            log_loading_dataset,
+                                            computation_progress_step)
+from sbfl_nn.utils.files import (natural_sort_key,
+                                 get_pth_files)
+from sbfl_nn.utils.gpu import DEVICE
 
 
 def get_evaluation_progress_bar(num_models):
@@ -46,7 +46,7 @@ def expand_csv_file(model_name: str,
 
 @click.command()
 @click.option('--models-dir',
-              default="output_models",
+              default="outputs/models",
               help='Base directory containing model config subdirectories.')
 def main(models_dir: str):
 

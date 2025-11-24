@@ -13,11 +13,11 @@ import json
 import yaml
 import torch.optim as optim
 
-from helpers_general.logging import logging
-from helpers_general.gpu import DEVICE
-from helpers_models.models import (MLDataset, DenseModel,
-                                   DenseModelHelper, load_dataset)
-from helpers_models.randomization import generate_rand_dense_seq
+from sbfl_nn.utils.logger import logging
+from sbfl_nn.utils.gpu import DEVICE
+from sbfl_nn.models.architectures import (MLDataset, DenseModel,
+                                          DenseModelHelper, load_dataset)
+from sbfl_nn.models.randomization import generate_rand_dense_seq
 import click
 
 
@@ -227,7 +227,7 @@ def generate_and_train_models(dataset: MLDataset,
               default='configs/model_gen',
               help='Directory containing config YAML files')
 @click.option('--output-dir',
-              default='output_models',
+              default='outputs/models',
               help='Base directory to save models')
 def main(config_dir, output_dir):
     """Generate and train models based on configuration files."""
@@ -299,7 +299,7 @@ def main(config_dir, output_dir):
             logging.info(f"{'-'*40}\n")
 
             # Create config-specific output directory structure
-            # output_models/config_50/mnist/ or output_models/config_50/fmnist/
+            # outputs/models/config_50/mnist/ or outputs/models/config_50/fmnist/
             config_output_dir = os.path.join(output_dir, config_name)
             dataset_output_dir = os.path.join(config_output_dir, dataset_name)
             config_path = os.path.join(dataset_output_dir, 'config.json')

@@ -1,13 +1,10 @@
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.neural_network import MLPClassifier
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    GradientBoostingClassifier
+)
 from sklearn.base import BaseEstimator, ClassifierMixin
 import numpy as np
-import xgboost as xgb
-import lightgbm as lgb
 
 
 class WeightedEnsemble(BaseEstimator, ClassifierMixin):
@@ -85,12 +82,6 @@ random_forest = RandomForestClassifier(
     n_jobs=-1
 )
 
-extra_trees = ExtraTreesClassifier(
-    n_estimators=100,
-    random_state=RANDOM_STATE,
-    n_jobs=-1
-)
-
 # ============================================================================
 # GRADIENT BOOSTING MODELS
 # ============================================================================
@@ -100,97 +91,21 @@ gradient_boosting = GradientBoostingClassifier(
     random_state=RANDOM_STATE
 )
 
-# XGBoost Models
-xgboost_regular = xgb.XGBClassifier(
-    random_state=RANDOM_STATE,
-    eval_metric='logloss'
-)
-
-precision_xgboost = xgb.XGBClassifier(
-    n_estimators=200,
-    learning_rate=0.1,
-    max_depth=5,
-    scale_pos_weight=3.0,  # Favor positive class (suspicious neurons)
-    random_state=RANDOM_STATE,
-    use_label_encoder=False,
-    eval_metric='logloss'
-)
-
-# LightGBM Models
-lightgbm_regular = lgb.LGBMClassifier(
-    random_state=RANDOM_STATE,
-    verbose=-1
-)
-
-precision_lightgbm = lgb.LGBMClassifier(
-    n_estimators=200,
-    learning_rate=0.1,
-    max_depth=5,
-    class_weight={0: 1, 1: 3},  # Favor positive class (suspicious neurons)
-    random_state=RANDOM_STATE,
-    verbose=-1
-)
-
-# ============================================================================
-# LINEAR MODELS
-# ============================================================================
-
-logistic_regression = LogisticRegression(
-    random_state=RANDOM_STATE,
-    max_iter=1000
-)
-
-# ============================================================================
-# PROBABILISTIC MODELS
-# ============================================================================
-
-naive_bayes = GaussianNB()
-
-# ============================================================================
-# INSTANCE-BASED MODELS
-# ============================================================================
-
-knn = KNeighborsClassifier()
-
 # ============================================================================
 # MODEL REGISTRY - GROUPED BY TYPE
 # ============================================================================
 
 TREE_MODELS = {
     'Decision Tree': decision_tree,
-    'Random Forest': random_forest,
-    'Extra Trees': extra_trees,
+    'Random Forest': random_forest
 }
 
 BOOSTING_MODELS = {
     'Gradient Boosting': gradient_boosting,
-    'XGBoost': xgboost_regular,
-    'Precision XGBoost': precision_xgboost,
-    'LightGBM': lightgbm_regular,
-    'Precision LightGBM': precision_lightgbm,
-}
-
-ENSEMBLE_MODELS = {
-    # Ensemble models removed
-}
-
-LINEAR_MODELS = {
-    'Logistic Regression': logistic_regression,
-}
-
-PROBABILISTIC_MODELS = {
-    'Naive Bayes': naive_bayes,
-}
-
-INSTANCE_MODELS = {
-    'KNN': knn,
 }
 
 # Combined registry for backward compatibility
 MODELS = {
     **TREE_MODELS,
     **BOOSTING_MODELS,
-    **LINEAR_MODELS,
-    **PROBABILISTIC_MODELS,
-    **INSTANCE_MODELS,
 }

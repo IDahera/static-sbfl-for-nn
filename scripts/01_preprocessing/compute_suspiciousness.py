@@ -8,20 +8,20 @@ from tqdm import tqdm
 
 from torch.utils.data import (Subset)
 
-from helpers_models.models import (DenseModel,
-                                    MLDataset,
-                                    load_dataset)
-from helpers_susgen.sbfl import (
+from sbfl_nn.models.architectures import (DenseModel,
+                                          MLDataset,
+                                          load_dataset)
+from sbfl_nn.sbfl.metrics import (
     get_activations_with_hooks,
     compute_hit_spectrum,
     get_ochiai,
     get_tarantula,
     save_sus_values,
     unsqueeze_tensors)
-from helpers_susgen.logging import (computation_progress_step)
-from helpers_general.file_handling import (get_pth_files,
-                                            natural_sort_key)
-from helpers_general.gpu import DEVICE
+from sbfl_nn.sbfl.sbfl_logger import (computation_progress_step)
+from sbfl_nn.utils.files import (get_pth_files,
+                                 natural_sort_key)
+from sbfl_nn.utils.gpu import DEVICE
 
 
 def initialize_timing_csv(model_dir):
@@ -151,9 +151,9 @@ def analyze_all_layers(model: DenseModel,
 
 
 @click.command()
-@click.option('--models-dir', default="output_models",
+@click.option('--models-dir', default="outputs/models",
               help='Base directory containing model config subdirectories.')
-@click.option('--output-dir', default="output_sus_values",
+@click.option('--output-dir', default="outputs/suspiciousness",
               help='Base directory to save suspiciousness values.')
 @click.option('--samples', default=1000,
               help='Number of samples to use for analysis.')

@@ -9,9 +9,7 @@
 raw/
 
 # Generated model files
-models_sus_prediction/
-models_image_classification/
-output_*/
+outputs/
 
 # Log files directory
 log/

@@ -16,10 +16,10 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from tqdm import tqdm
 
-from helpers_preprocess.dataset_generation import DatasetEntries, SusPredictionDataset
-from helpers_general.file_handling import get_pkl_files, natural_sort_key
-from helpers_general.gpu import DEVICE
-from helpers_general.logging import logging
+from sbfl_nn.data.dataset_generation import DatasetEntries, SusPredictionDataset
+from sbfl_nn.utils.files import get_pkl_files, natural_sort_key
+from sbfl_nn.utils.gpu import DEVICE
+from sbfl_nn.utils.logger import logging
 
 # Configuration constants
 LOGGING = True                  # Enable/disable verbose logging

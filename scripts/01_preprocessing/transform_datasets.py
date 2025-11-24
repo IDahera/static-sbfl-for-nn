@@ -18,10 +18,10 @@ import os
 import time
 from tqdm import tqdm
 
-from helpers_preprocess.dataset_generation import (
+from sbfl_nn.data.dataset_generation import (
     SusPredictionDataset, DatasetEntries)
-from helpers_general.file_handling import get_pkl_files, natural_sort_key
-from helpers_general.gpu import DEVICE
+from sbfl_nn.utils.files import get_pkl_files, natural_sort_key
+from sbfl_nn.utils.gpu import DEVICE
 
 LOGGING = False                 # Enable/disable verbose logging
 
@@ -75,7 +75,7 @@ def create_suspiciousness_dataset(sus_files):
 
         # Load model and suspiciousness values
         sus_values = load_sus_values(sus_file)
-        model_file = sus_file.replace("output_sus_values", "output_models").replace("_sus.pkl", ".pth")
+        model_file = sus_file.replace("outputs/suspiciousness", "outputs/models").replace("_sus.pkl", ".pth")
         model = load_model(model_file)
 
         # Process each layer
@@ -104,9 +104,9 @@ if __name__ == "__main__":
     import click
 
     @click.command()
-    @click.option('--sus-dir', default="output_sus_values",
+    @click.option('--sus-dir', default="outputs/suspiciousness",
                   help='Base directory containing suspiciousness value files.')
-    @click.option('--output-dir', default="output_sus_datasets",
+    @click.option('--output-dir', default="outputs/datasets",
                   help='Base directory to save datasets.')
     def main(sus_dir: str, output_dir: str):
         """Transform suspiciousness values into datasets."""
