@@ -1,15 +1,15 @@
 import torch
 import torch.optim as optim
 import os
+import logging
 import torch.nn.functional as F
 
 from enum import Enum
 from tqdm import tqdm
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-from helpers_general.logging import logging
-from helpers_general.file_handling import ensure_output_directory
-from helpers_general.gpu import DEVICE
+from sbfl_nn.utils.files import ensure_output_directory
+from sbfl_nn.utils.gpu import DEVICE
 
 
 class MLDataset(Enum):

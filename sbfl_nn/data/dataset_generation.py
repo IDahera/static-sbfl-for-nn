@@ -8,8 +8,8 @@ from collections import namedtuple
 from enum import Enum
 from torch.utils.data import Dataset
 
-from helpers_general.file_handling import ensure_output_directory
-from helpers_general.gpu import DEVICE
+from sbfl_nn.utils.files import ensure_output_directory
+from sbfl_nn.utils.gpu import DEVICE
 
 
 class LayerType(Enum):

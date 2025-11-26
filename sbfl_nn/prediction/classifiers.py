@@ -3,8 +3,12 @@ from sklearn.ensemble import (
     RandomForestClassifier,
     GradientBoostingClassifier
 )
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.base import BaseEstimator, ClassifierMixin
 import numpy as np
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
 
 
 class WeightedEnsemble(BaseEstimator, ClassifierMixin):
@@ -91,6 +95,39 @@ gradient_boosting = GradientBoostingClassifier(
     random_state=RANDOM_STATE
 )
 
+# XGBoost
+xgboost = XGBClassifier(
+    random_state=RANDOM_STATE,
+    n_jobs=-1,
+    verbosity=0
+)
+
+# LightGBM
+lightgbm = LGBMClassifier(
+    random_state=RANDOM_STATE,
+    n_jobs=-1,
+    verbosity=-1
+)
+
+# ============================================================================
+# LINEAR MODELS
+# ============================================================================
+
+logistic_regression = LogisticRegression(
+    random_state=RANDOM_STATE,
+    max_iter=1000,
+    n_jobs=-1
+)
+
+# ============================================================================
+# DISTANCE-BASED MODELS
+# ============================================================================
+
+knn = KNeighborsClassifier(
+    n_neighbors=5,
+    n_jobs=-1
+)
+
 # ============================================================================
 # MODEL REGISTRY - GROUPED BY TYPE
 # ============================================================================
@@ -102,10 +139,22 @@ TREE_MODELS = {
 
 BOOSTING_MODELS = {
     'Gradient Boosting': gradient_boosting,
+    'XGBoost': xgboost,
+    'LightGBM': lightgbm,
+}
+
+LINEAR_MODELS = {
+    'Logistic Regression': logistic_regression,
+}
+
+DISTANCE_MODELS = {
+    'KNN': knn,
 }
 
 # Combined registry for backward compatibility
 MODELS = {
     **TREE_MODELS,
     **BOOSTING_MODELS,
+    **LINEAR_MODELS,
+    **DISTANCE_MODELS,
 }
