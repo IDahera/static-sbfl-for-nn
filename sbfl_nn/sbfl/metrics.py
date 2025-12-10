@@ -4,7 +4,7 @@ import pickle
 import os
 import torch.nn as nn
 
-from helpers_general.file_handling import ensure_output_directory
+from sbfl_nn.utils.files import ensure_output_directory
 from torch.utils.data import DataLoader
 from typing import Tuple
 

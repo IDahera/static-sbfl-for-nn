@@ -11,6 +11,8 @@ import os
 import glob
 import json
 import yaml
+import time
+import csv
 import torch.optim as optim
 import click
 
@@ -33,6 +35,41 @@ from scripts.utils import (
 )
 
 logger = get_logger(__name__)
+
+
+def append_total_timing(output_base_dir, config_name, dataset_name,
+                        num_models, total_time):
+    """Append total timing data for model generation to CSV in outputs folder."""
+    csv_path = os.path.join(output_base_dir, "model_generation_times.csv")
+    
+    # Create CSV with headers if it doesn't exist
+    write_header = not os.path.exists(csv_path)
+    
+    with open(csv_path, "a", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        if write_header:
+            writer.writerow([
+                "Config",
+                "Dataset",
+                "Num_Models",
+                "Total_Time_Seconds",
+                "Avg_Time_Per_Model_Seconds",
+                "Timestamp",
+            ])
+        
+        avg_time = total_time / num_models if num_models > 0 else 0.0
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        
+        writer.writerow([
+            config_name,
+            dataset_name,
+            num_models,
+            f"{total_time:.2f}",
+            f"{avg_time:.4f}",
+            timestamp,
+        ])
+    
+    logger.info(f"Timing logged to {csv_path}")
 
 
 def load_config(config_path: str) -> dict:
@@ -331,7 +368,8 @@ def main(config_dir, output_dir):
                 # Save current configuration
                 save_config(config_path, current_config)
 
-                # Generate and train models
+                # Generate and train models with timing
+                start_time = time.time()
                 generate_and_train_models(
                     dataset=dataset,
                     num_models=num_models,
@@ -340,6 +378,16 @@ def main(config_dir, output_dir):
                     layer_bounds=(min_layers, max_layers),
                     neuron_bounds=(min_neurons, max_neurons),
                     output_dir=dataset_output_dir,
+                )
+                total_time = time.time() - start_time
+                
+                # Log total timing to outputs folder (base dir)
+                output_base = os.path.dirname(output_dir.rstrip('/'))
+                if not output_base:
+                    output_base = "outputs"
+                append_total_timing(
+                    output_base, config_name, dataset_name,
+                    num_models, total_time
                 )
 
     log_completion(logger, "Model generation completed for all configs")

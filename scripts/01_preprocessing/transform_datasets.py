@@ -17,6 +17,8 @@ The workflow is:
 import pickle
 import torch
 import os
+import csv
+import time
 import click
 
 from tqdm import tqdm
@@ -32,13 +34,49 @@ from scripts.utils import (
     get_logger,
     log_section,
     log_subsection,
-    log_duration,
     log_completion,
     find_subdirs,
     Timer,
 )
 
 logger = get_logger(__name__)
+
+
+def append_total_timing(output_base_dir, config_name, dataset_name,
+                        num_files, total_time):
+    """Append total timing data for dataset transformation to CSV."""
+    csv_path = os.path.join(
+        output_base_dir, "dataset_transformation_times.csv"
+    )
+    
+    # Create CSV with headers if it doesn't exist
+    write_header = not os.path.exists(csv_path)
+    
+    with open(csv_path, "a", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        if write_header:
+            writer.writerow([
+                "Config",
+                "Dataset",
+                "Num_Files",
+                "Total_Time_Seconds",
+                "Avg_Time_Per_File_Seconds",
+                "Timestamp",
+            ])
+        
+        avg_time = total_time / num_files if num_files > 0 else 0.0
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        
+        writer.writerow([
+            config_name,
+            dataset_name,
+            num_files,
+            f"{total_time:.2f}",
+            f"{avg_time:.4f}",
+            timestamp,
+        ])
+    
+    logger.info(f"Timing logged to {csv_path}")
 
 
 def load_sus_values(sus_file):
@@ -160,8 +198,10 @@ def main(sus_dir: str, output_dir: str):
 
                 logger.info(f"Found {len(sus_files)} .pkl files")
 
-                # Create dataset from suspiciousness values
+                # Create dataset from suspiciousness values with timing
+                start_time = time.time()
                 dataset = create_suspiciousness_dataset(sus_files)
+                total_time = time.time() - start_time
 
                 # Create output directory for this config and dataset
                 dataset_output_dir = os.path.join(
@@ -187,6 +227,15 @@ def main(sus_dir: str, output_dir: str):
                 with open(file_output_numpy, "wb") as f:
                     pickle.dump(numpy_object, f)
                 logger.info(f"Saved NumPy dataset: {file_output_numpy}")
+
+                # Log timing to outputs folder
+                output_base = os.path.dirname(output_dir.rstrip('/'))
+                if not output_base:
+                    output_base = "outputs"
+                append_total_timing(
+                    output_base, config_name, dataset_name,
+                    len(sus_files), total_time
+                )
 
     log_completion(logger, "Dataset transformation completed")
 

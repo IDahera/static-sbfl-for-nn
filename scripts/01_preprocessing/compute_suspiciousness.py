@@ -38,6 +38,43 @@ from scripts.utils import (
 logger = get_logger(__name__)
 
 
+def append_total_sus_timing(output_base_dir, config_name, dataset_name,
+                            num_models, samples, total_time):
+    """Append total timing data for suspiciousness computation to CSV."""
+    csv_path = os.path.join(output_base_dir, "suspiciousness_computation_times.csv")
+    
+    # Create CSV with headers if it doesn't exist
+    write_header = not os.path.exists(csv_path)
+    
+    with open(csv_path, "a", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        if write_header:
+            writer.writerow([
+                "Config",
+                "Dataset",
+                "Num_Models",
+                "Samples_Per_Model",
+                "Total_Time_Seconds",
+                "Avg_Time_Per_Model_Seconds",
+                "Timestamp",
+            ])
+        
+        avg_time = total_time / num_models if num_models > 0 else 0.0
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        
+        writer.writerow([
+            config_name,
+            dataset_name,
+            num_models,
+            samples,
+            f"{total_time:.2f}",
+            f"{avg_time:.4f}",
+            timestamp,
+        ])
+    
+    logger.info(f"Total timing logged to {csv_path}")
+
+
 def initialize_timing_csv(model_dir):
     """Initialize CSV file for timing data with headers."""
     csv_path = os.path.join(model_dir, "sus_computation_times.csv")
@@ -260,6 +297,10 @@ def main(models_dir: str, output_dir: str, samples: int, threshold: float):
                     logger.warning(f"Unknown dataset: {dataset_name}")
                     continue
 
+                # Start total timing for this config/dataset
+                dataset_start_time = time.time()
+                num_models_processed = 0
+
                 pbar = tqdm(
                     total=len(model_files),
                     desc="Processing models",
@@ -332,6 +373,17 @@ def main(models_dir: str, output_dir: str, samples: int, threshold: float):
                             torch.cuda.empty_cache()
 
                         del model, sus_results
+                        num_models_processed += 1
+
+                # Log total timing to outputs folder (base dir)
+                dataset_total_time = time.time() - dataset_start_time
+                output_base = os.path.dirname(output_dir.rstrip('/'))
+                if not output_base:
+                    output_base = "outputs"
+                append_total_sus_timing(
+                    output_base, config_name, dataset_name,
+                    num_models_processed, samples, dataset_total_time
+                )
 
     log_completion(logger, f"Suspiciousness computation done → {output_dir}")
 
