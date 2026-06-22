@@ -1,78 +1,113 @@
 # Static SBFL for Neural Networks
 
-This project implements static spectrum-based fault localization (SBFL) techniques for neural networks.
+## Overview
+This project implements static Spectrum-Based Fault Localization (SBFL) techniques for neural networks. It generates models with random architectures, computes suspiciousness values, and trains classifiers to predict neuron suspiciousness.
 
-## Scripts
+## Project Structure
 
-### 01_model_gen.py
+```
+static-sbfl-for-nn/
+├── sbfl_nn/                    # Core package
+│   ├── data/                   # Dataset generation utilities
+│   ├── models/                 # Neural network architectures
+│   ├── prediction/             # Classifiers and regressors
+│   ├── sbfl/                   # SBFL metrics (Ochiai, Tarantula)
+│   └── utils/                  # General utilities (files, GPU, logging)
+│
+├── scripts/                    # Executable scripts
+│   ├── 01_preprocessing/       # Model generation and suspiciousness computation
+│   ├── 02_classification/      # Train classifiers on suspiciousness prediction
+│   ├── 03_validation/          # End-to-end validation
+│   └── 04_regression/          # Regression analysis
+│
+├── outputs/                    # Generated outputs
+│   ├── models/                 # Trained neural network models
+│   ├── suspiciousness/         # Computed suspiciousness values
+│   ├── datasets/               # Transformed datasets for ML
+│   └── results/                # Classification/regression results
+│
+├── configs/                    # Configuration files
+│   └── model_gen/              # Model generation configs
+│
+├── data/                       # Raw datasets (MNIST, Fashion-MNIST)
+├── docs/                       # Documentation
+└── tests/                      # Unit tests
 
-Generates and trains multiple neural network models with random architectures on MNIST and Fashion MNIST datasets. 
+```
 
-**Features:**
-- Automatically trains on both MNIST and Fashion MNIST
-- Generates models with random layer configurations
-- Stores configuration and detects changes
-- Prompts user before deleting models when configuration changes (default: No)
-- Supports multiple configuration profiles via `--config-name`
+## Installation
 
-**Usage:**
-
+1. Clone the repository
+2. Install dependencies and package:
 ```bash
-# Generate 100 models with default settings (config1)
-python 01_model_gen.py --num-models 100
-
-# Use a different configuration profile
-python 01_model_gen.py --num-models 100 --config-name config2
-
-# Custom configuration
-python 01_model_gen.py \
-  --num-models 500 \
-  --epochs 2 \
-  --min-layers 5 \
-  --max-layers 25 \
-  --min-neurons 10 \
-  --max-neurons 50 \
-  --learning-rate 0.001 \
-  --config-name my_experiment \
-  --output-dir models/
+pip install -r requirements.txt
+pip install -e .  # Install sbfl_nn package in editable mode
 ```
 
-**Output:**
-```
-models__config1/
-├── mnist/
-│   ├── config.json          # Training configuration
-│   ├── model_0.pth          # Trained models
-│   ├── model_1.pth
-│   └── ...
-└── fmnist/
-    ├── config.json
-    ├── model_0.pth
-    ├── model_1.pth
-    └── ...
+## Usage
 
-models__config2/           # Different configuration
-├── mnist/
-│   └── ...
-└── fmnist/
-    └── ...
+### 1. Preprocessing Pipeline
+
+Generate models with random architectures:
+```bash
+python scripts/01_preprocessing/generate_models.py --config configs/model_gen/config1.yaml
 ```
 
-**Configuration Tracking:**
-The script saves configuration parameters (min/max layers, min/max neurons, learning rate, epochs) in `config.json`. If you run the script again with different parameters, it will:
-1. Detect the configuration change
-2. Show which parameters changed
-3. Ask if you want to delete existing models (default: No)
-4. Continue training from where it left off or start fresh
+Evaluate generated models:
+```bash
+python scripts/01_preprocessing/evaluate_models.py
+```
 
-Each configuration name creates a separate directory (e.g., `models__config1`, `models__config2`), allowing you to run multiple experiments with different hyperparameters without conflicts.
+Compute suspiciousness values:
+```bash
+python scripts/01_preprocessing/compute_suspiciousness.py
+```
 
----
+Transform to ML datasets:
+```bash
+python scripts/01_preprocessing/transform_datasets.py
+```
 
-## Requirements
+### 2. Classification
 
-- Python 3.x
-- PyTorch
-- torchvision
-- click
-- tqdm
+Train classifiers to predict neuron suspiciousness:
+```bash
+python scripts/02_classification/train_classifiers.py
+```
+
+Interpret feature importance:
+```bash
+python scripts/02_classification/interpret_features.py
+```
+
+### 3. Validation
+
+Run end-to-end evaluation:
+```bash
+python scripts/03_validation/end_to_end_eval.py
+```
+
+## Configuration
+
+Model generation parameters are defined in YAML files under `configs/model_gen/`:
+- `num_models`: Number of models to generate
+- `min_layers`/`max_layers`: Layer count range
+- `min_neurons`/`max_neurons`: Neuron count range
+- `learning_rate`: Training learning rate
+- `epochs`: Training epochs
+
+## Output Structure
+
+All outputs are organized under `outputs/`:
+- `outputs/models/config_name/dataset_name/`: Trained models (.pth files)
+- `outputs/suspiciousness/config_name/dataset_name/`: Suspiciousness values (.pkl files)
+- `outputs/datasets/config_name/dataset_name/`: ML datasets (.pkl files)
+- `outputs/results/config_name/dataset_name/`: Classification results (.csv, .pkl files)
+
+## Key Features
+
+- **Multi-GPU Support**: Parallel model generation across multiple GPUs
+- **SBFL Metrics**: Ochiai and Tarantula suspiciousness computation
+- **ML Classifiers**: Decision Tree, Random Forest, Gradient Boosting
+- **Feature Rankings**: Interpretable feature importance analysis
+- **Configurable Pipeline**: YAML-based configuration system
