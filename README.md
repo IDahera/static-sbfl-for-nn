@@ -149,7 +149,3 @@ outputs/dataset_transformation_times.csv
 The artifact configurations use random seed 42, one training epoch, 1,000
 suspiciousness samples, threshold 0.0, and an 80/20 classifier split. Runtime
 measurements depend on the host hardware.
-
-For a beginner-oriented explanation of the image and service definitions, see
-[docs/DOCKER_EXPLAINED.md](docs/DOCKER_EXPLAINED.md). The concise paper
-appendix draft is in [docs/AE_INSTRUCTIONS.md](docs/AE_INSTRUCTIONS.md).
