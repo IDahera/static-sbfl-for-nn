@@ -2,10 +2,10 @@ services:
   # Portable Linux CPU container. It runs natively through Docker on Linux,
   # Windows, Intel Macs, and Apple Silicon Macs.
   artifact:
+    image: "ghcr.io/idahera/static-sbfl-for-nn:${SBFL_IMAGE_VERSION:-v1.0.0-sefm26-ae}-cpu"
     build:
       context: .
       target: final
-    image: static-sbfl-for-nn:sefm26-cpu
     environment:
       SBFL_DEVICE: cpu
     volumes:
@@ -19,10 +19,10 @@ services:
   artifact-gpu:
     profiles: ["gpu"]
     platform: linux/amd64
+    image: "ghcr.io/idahera/static-sbfl-for-nn:${SBFL_IMAGE_VERSION:-v1.0.0-sefm26-ae}-cuda"
     build:
       context: .
       target: cuda
-    image: static-sbfl-for-nn:sefm26-cuda
     environment:
       SBFL_DEVICE: cuda
     volumes:
