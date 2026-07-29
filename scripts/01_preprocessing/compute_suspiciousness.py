@@ -32,6 +32,7 @@ from scripts.utils import (
     log_subsection,
     log_completion,
     find_subdirs,
+    select_subdirs,
     Timer,
 )
 
@@ -236,10 +237,22 @@ def analyze_all_layers(
     default=0.0,
     help="Activation threshold for hit spectrum computation.",
 )
-def main(models_dir: str, output_dir: str, samples: int, threshold: float):
+@click.option(
+    "--config",
+    "config_names",
+    multiple=True,
+    help="Process only this configuration; repeat for multiple configurations.",
+)
+def main(
+    models_dir: str,
+    output_dir: str,
+    samples: int,
+    threshold: float,
+    config_names: tuple[str, ...],
+):
 
     # Find all config subdirectories in the models directory
-    config_dirs = find_subdirs(models_dir)
+    config_dirs = select_subdirs(models_dir, config_names)
     if not config_dirs:
         logger.error(f"No config subdirectories found in {models_dir}")
         return

@@ -16,32 +16,33 @@ from scripts.utils import (
     log_subsection,
     log_completion,
     find_subdirs,
+    select_subdirs,
 )
 
 logger = get_logger(__name__)
 
 
 def get_feature_names():
-    """Define feature names based on dataset structure"""
+    """Return feature names in the exact order produced by ``get_numpy``."""
     return [
-        "layer_indices",
+        "layer_idx",
         "total_layers",
-        "neuron_indices",
+        "neuron_idx",
         "total_neurons",
-        "layer_types",
-        "weight_l1_norms",
-        "weight_l2_norms",
+        "layer_type",
+        "weight_L1",
+        "weight_L2",
         "weight_mean",
         "weight_std",
-        "bias_l1_norms",
-        "bias_l2_norms",
+        "bias_L1",
+        "bias_L2",
         "bias_mean",
         "bias_std",
-        "predecessor_layer_sizes",
-        "successor_layer_sizes",
-        "normalized_layer_position",
-        "normalized_neuron_position",
-        "model_original_sizes",
+        "pred_layer_size",
+        "succ_layer_size",
+        "norm_layer_pos",
+        "norm_neuron_pos",
+        "model_size",
     ]
 
 
@@ -67,8 +68,14 @@ def load_models(model_path):
     return models
 
 
-def extract_feature_rankings(models, feature_names):
+def extract_feature_rankings(models, feature_names, excluded_features=None):
     """Extract feature importance rankings for each model"""
+    excluded_features = set(excluded_features or ())
+    included_indices = [
+        index
+        for index, name in enumerate(feature_names)
+        if name not in excluded_features
+    ]
     rankings = {}
 
     for model_name, model in models.items():
@@ -76,17 +83,24 @@ def extract_feature_rankings(models, feature_names):
             # Tree-based models have built-in feature importance
             importances = model.feature_importances_
 
-            # Create ranking (1 = most important)
-            sorted_indices = np.argsort(importances)[::-1]
+            # Create ranking (1 = most important) over the features reported in
+            # the paper. ``layer_type`` is constant for the dense networks and
+            # is intentionally excluded from Table 3.
+            sorted_indices = sorted(
+                included_indices,
+                key=lambda index: importances[index],
+                reverse=True,
+            )
             rankings[model_name] = {
                 feature_names[idx]: rank + 1
                 for rank, idx in enumerate(sorted_indices)
             }
         else:
-            # Models without built-in importance get N/A
-            rankings[model_name] = {
-                feature: "N/A" for feature in feature_names
-            }
+            # Logistic Regression and KNN do not expose tree-based feature
+            # importances and are omitted from RQ3/Table 3.
+            logger.info(
+                f"Skipping {model_name}: no feature_importances_ attribute"
+            )
 
     return rankings
 
@@ -149,11 +163,17 @@ def create_ranking_table(rankings, feature_names, output_path):
     default="outputs/results/",
     help="Directory containing config subdirectories with models",
 )
-def main(results_dir):
+@click.option(
+    "--config",
+    "config_names",
+    multiple=True,
+    help="Process only this configuration; repeat for multiple configurations.",
+)
+def main(results_dir, config_names):
     """Feature importance interpretation for classification models"""
 
     # Find all config subdirectories
-    config_dirs = find_subdirs(results_dir)
+    config_dirs = select_subdirs(results_dir, config_names)
     if not config_dirs:
         logger.error(f"No config subdirectories found in {results_dir}")
         return
@@ -187,13 +207,22 @@ def main(results_dir):
             logger.info(f"Loaded {len(models)} models")
 
             # Get feature names
-            feature_names = get_feature_names()
+            all_feature_names = get_feature_names()
+            reported_feature_names = [
+                name for name in all_feature_names if name != "layer_type"
+            ]
 
             # Extract rankings
-            rankings = extract_feature_rankings(models, feature_names)
+            rankings = extract_feature_rankings(
+                models,
+                all_feature_names,
+                excluded_features={"layer_type"},
+            )
 
             # Create and save ranking table
-            create_ranking_table(rankings, feature_names, model_path)
+            create_ranking_table(
+                rankings, reported_feature_names, model_path
+            )
 
     log_completion(logger, "Feature interpretation completed")
 

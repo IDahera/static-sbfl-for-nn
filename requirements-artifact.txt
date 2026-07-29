@@ -1,0 +1,18 @@
+# Versions used for the SEFM 2026 experiments where they are stated in the paper.
+# PyTorch and torchvision are installed separately by the Dockerfile so that the
+# CPU and CUDA image targets receive the correct binary wheels.
+scikit-learn==1.6.1
+xgboost==3.1.1
+lightgbm==4.6.0
+
+# Supporting runtime dependencies pinned for repeatable image builds.
+pandas==2.2.3
+numpy==2.2.3
+scipy==1.15.2
+Pillow==11.1.0
+click==8.1.8
+PyYAML==6.0.2
+matplotlib==3.10.0
+seaborn==0.13.2
+tqdm==4.67.1
+joblib==1.4.2

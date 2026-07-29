@@ -32,6 +32,7 @@ from scripts.utils import (
     log_subsection,
     log_completion,
     find_subdirs,
+    select_subdirs,
     Timer,
 )
 
@@ -63,10 +64,16 @@ def expand_csv_file(
     default="outputs/models",
     help="Base directory containing model config subdirectories.",
 )
-def main(models_dir: str):
+@click.option(
+    "--config",
+    "config_names",
+    multiple=True,
+    help="Process only this configuration; repeat for multiple configurations.",
+)
+def main(models_dir: str, config_names: tuple[str, ...]):
 
     # Find all config subdirectories in the models directory
-    config_dirs = find_subdirs(models_dir)
+    config_dirs = select_subdirs(models_dir, config_names)
     if not config_dirs:
         logger.error(f"No config subdirectories found in {models_dir}")
         return

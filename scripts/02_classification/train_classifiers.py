@@ -27,6 +27,7 @@ from scripts.utils import (
     log_subsection,
     log_completion,
     find_subdirs,
+    select_subdirs,
 )
 
 logger = get_logger(__name__)
@@ -68,6 +69,7 @@ def train_and_evaluate(models, X_train, X_val, y_train, y_val, metric_names):
     logger.info(METRIC_EXPLANATIONS)
 
     results = {}
+    interpretation_models = {}
 
     for target_idx, metric_name in enumerate(metric_names):
         log_section(logger, f"Training models for {metric_name}")
@@ -88,7 +90,6 @@ def train_and_evaluate(models, X_train, X_val, y_train, y_val, metric_names):
         )
 
         results[metric_name] = {}
-        trained_models = {}
 
         for name, model in models.items():
             logger.info(f"[{name}]")
@@ -98,7 +99,10 @@ def train_and_evaluate(models, X_train, X_val, y_train, y_val, metric_names):
             model.fit(X_train, y_train_binary)
             train_time = time.time() - train_start
 
-            trained_models[name] = model
+            if metric_name == "Tarantula":
+                # RQ3 interprets the Tarantula classifiers. These are the
+                # models persisted after both RQ1/RQ2 targets are evaluated.
+                interpretation_models[name] = model
 
             # Make predictions
             val_start = time.time()
@@ -158,7 +162,7 @@ def train_and_evaluate(models, X_train, X_val, y_train, y_val, metric_names):
 
             logger.info(f"  Train: {train_time:.3f}s | Val: {val_time:.3f}s")
 
-    return results, trained_models
+    return results, interpretation_models
 
 
 def save_models(models_dict, save_dir="saved_models"):
@@ -282,16 +286,29 @@ def save_results_to_csv(results, save_dir="models_sus_prediction"):
     help="Random state for reproducibility",
 )
 @click.option(
-    "--max-models",
+    "--max-samples",
     default=None,
     type=int,
-    help="Maximum number of models to use",
+    help="Maximum number of neuron rows to use (not neural-network models).",
 )
-def main(dataset_dir, output_dir, train_split, random_state, max_models):
+@click.option(
+    "--config",
+    "config_names",
+    multiple=True,
+    help="Process only this configuration; repeat for multiple configurations.",
+)
+def main(
+    dataset_dir,
+    output_dir,
+    train_split,
+    random_state,
+    max_samples,
+    config_names,
+):
     """Train classification models on suspiciousness prediction dataset."""
 
     # Find all config subdirectories
-    config_dirs = find_subdirs(dataset_dir)
+    config_dirs = select_subdirs(dataset_dir, config_names)
     if not config_dirs:
         logger.error(f"No config subdirectories found in {dataset_dir}")
         return
@@ -336,11 +353,12 @@ def main(dataset_dir, output_dir, train_split, random_state, max_models):
                 logger.warning(f"Found {nan_count} NaN values, replacing")
                 X = np.nan_to_num(X, nan=0.0)
 
-            # Limit the number of models if specified
-            if max_models is not None and max_models > 0:
-                logger.info(f"Limiting to first {max_models} models")
-                X = X[:max_models]
-                y = y[:max_models]
+            # Each row represents one neuron; model boundaries are not retained
+            # by the transformed NumPy dataset.
+            if max_samples is not None and max_samples > 0:
+                logger.info(f"Limiting to first {max_samples} neuron rows")
+                X = X[:max_samples]
+                y = y[:max_samples]
 
             logger.info(f"Total samples: {len(X)}")
 

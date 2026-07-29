@@ -7,6 +7,7 @@ from .script_helpers import (
     log_duration,
     log_completion,
     find_subdirs,
+    select_subdirs,
     iter_config_datasets,
     Timer,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "log_duration",
     "log_completion",
     "find_subdirs",
+    "select_subdirs",
     "iter_config_datasets",
     "Timer",
 ]

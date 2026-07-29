@@ -36,6 +36,7 @@ from scripts.utils import (
     log_subsection,
     log_completion,
     find_subdirs,
+    select_subdirs,
     Timer,
 )
 
@@ -95,7 +96,7 @@ def load_model(model_file):
     return model
 
 
-def create_suspiciousness_dataset(sus_files):
+def create_suspiciousness_dataset(sus_files, sus_dir, models_dir):
     """Process all suspiciousness files and create a dataset.
 
     This function is the main processing pipeline that:
@@ -109,8 +110,10 @@ def create_suspiciousness_dataset(sus_files):
     -----------
     sus_files : list
         List of suspiciousness value files to process
-    dir_model : str
-        Directory containing the model files
+    sus_dir : str
+        Base directory used to compute each suspiciousness file's relative path.
+    models_dir : str
+        Base directory containing the corresponding model files.
 
     Returns:
     --------
@@ -128,9 +131,10 @@ def create_suspiciousness_dataset(sus_files):
 
         # Load model and suspiciousness values
         sus_values = load_sus_values(sus_file)
-        model_file = sus_file.replace(
-            "outputs/suspiciousness", "outputs/models"
-        ).replace("_sus.pkl", ".pth")
+        relative_model_file = os.path.relpath(sus_file, sus_dir).replace(
+            "_sus.pkl", ".pth"
+        )
+        model_file = os.path.join(models_dir, relative_model_file)
         model = load_model(model_file)
 
         # Process each layer
@@ -159,11 +163,27 @@ def create_suspiciousness_dataset(sus_files):
     default="outputs/datasets",
     help="Base directory to save datasets.",
 )
-def main(sus_dir: str, output_dir: str):
+@click.option(
+    "--models-dir",
+    default="outputs/models",
+    help="Base directory containing the corresponding model files.",
+)
+@click.option(
+    "--config",
+    "config_names",
+    multiple=True,
+    help="Process only this configuration; repeat for multiple configurations.",
+)
+def main(
+    sus_dir: str,
+    output_dir: str,
+    models_dir: str,
+    config_names: tuple[str, ...],
+):
     """Transform suspiciousness values into datasets."""
 
     # Find all config subdirectories in the sus directory
-    config_dirs = find_subdirs(sus_dir)
+    config_dirs = select_subdirs(sus_dir, config_names)
     if not config_dirs:
         logger.error(f"No config subdirectories found in {sus_dir}")
         return
@@ -200,7 +220,9 @@ def main(sus_dir: str, output_dir: str):
 
                 # Create dataset from suspiciousness values with timing
                 start_time = time.time()
-                dataset = create_suspiciousness_dataset(sus_files)
+                dataset = create_suspiciousness_dataset(
+                    sus_files, sus_dir, models_dir
+                )
                 total_time = time.time() - start_time
 
                 # Create output directory for this config and dataset

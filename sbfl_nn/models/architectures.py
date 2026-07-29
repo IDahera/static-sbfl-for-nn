@@ -60,7 +60,7 @@ def load_dataset(dataset: MLDataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
-        pin_memory=torch.cuda.is_available(),  # Speed up GPU transfer
+        pin_memory=DEVICE.type == "cuda",  # Speed up CUDA transfer
         persistent_workers=True if num_workers > 0 else False
     )
 
@@ -69,7 +69,7 @@ def load_dataset(dataset: MLDataset,
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
-        pin_memory=torch.cuda.is_available(),
+        pin_memory=DEVICE.type == "cuda",
         persistent_workers=True if num_workers > 0 else False
     )
 
@@ -108,7 +108,7 @@ class DenseModelHelper:
         model.train()
         
         # Enable mixed precision training for speed (using new API)
-        scaler = torch.amp.GradScaler('cuda') if torch.cuda.is_available() else None
+        scaler = torch.amp.GradScaler('cuda') if DEVICE.type == "cuda" else None
         
         for epoch in range(epochs):
             for data, label in tqdm(loader, desc=f"Training {model_name} ({epoch+1}/{epochs})"):
@@ -174,5 +174,4 @@ class DenseModelHelper:
                 f"Model {model_idx} saved: {num_layers} layers")
         else:
             logging.error("Cannot proceed due to directory issues")
-
 

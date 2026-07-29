@@ -1,22 +1,51 @@
+import os
+
 import torch
 
 
-def __get_best_device():
+def get_device():
     """
-    Returns the best available device in the following order of preference:
-    1. MPS (Apple Silicon GPU)
-    2. CUDA (NVIDIA GPU)
-    3. CPU (default fallback)
+    Return the requested PyTorch device.
+
+    ``SBFL_DEVICE`` may be set to ``auto`` (the default), ``cuda``, ``mps``,
+    or ``cpu``. Explicit requests fail early when the requested accelerator is
+    unavailable; this prevents a full artefact run from silently falling back
+    to an impractically slow CPU execution.
     """
-    if torch.backends.mps.is_available():
-        return torch.device("mps")
-    elif torch.cuda.is_available():
+    requested = os.environ.get("SBFL_DEVICE", "auto").strip().lower()
+    supported = {"auto", "cuda", "mps", "cpu"}
+
+    if requested not in supported:
+        choices = ", ".join(sorted(supported))
+        raise ValueError(f"Unsupported SBFL_DEVICE={requested!r}; choose {choices}")
+
+    if requested == "cuda":
+        if not torch.cuda.is_available():
+            raise RuntimeError(
+                "SBFL_DEVICE=cuda was requested, but CUDA is not available. "
+                "Run the CUDA image with GPU access (for Docker: --gpus all)."
+            )
         return torch.device("cuda")
-    else:
+
+    if requested == "mps":
+        if not torch.backends.mps.is_available():
+            raise RuntimeError(
+                "SBFL_DEVICE=mps was requested, but MPS is not available. "
+                "MPS is available to native macOS PyTorch, not Linux containers."
+            )
+        return torch.device("mps")
+
+    if requested == "cpu":
         return torch.device("cpu")
 
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
 
-DEVICE = __get_best_device()
+
+DEVICE = get_device()
 
 
 # TODO Possibly deprecated

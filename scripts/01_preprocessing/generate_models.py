@@ -13,6 +13,7 @@ import json
 import yaml
 import time
 import csv
+import torch
 import torch.optim as optim
 import click
 
@@ -112,6 +113,7 @@ def configs_match(old_config: dict, new_config: dict) -> bool:
         "max_neurons",
         "learning_rate",
         "epochs",
+        "random_seed",
     ]
 
     for key in relevant_keys:
@@ -221,16 +223,25 @@ def generate_and_train_models(
     neuron_bounds: tuple[int, int],
     output_dir: str,
 ):
-    """Generate random models, train them and save to disk."""
-    # Find the highest existing model index
+    """Generate models until ``num_models`` exist in ``output_dir``."""
     highest_existing_index = find_highest_model_index(output_dir)
+    existing_model_files = glob.glob(os.path.join(output_dir, "model_*.pth"))
+    models_to_generate = max(0, num_models - len(existing_model_files))
     start_index = highest_existing_index + 1
-    end_index = start_index + num_models
+    end_index = start_index + models_to_generate
 
     dataset_name = dataset.name
     logger.info(f"Training on dataset: {dataset_name}")
+    logger.info(
+        f"Target models: {num_models}; existing: {len(existing_model_files)}; "
+        f"remaining: {models_to_generate}"
+    )
+
+    if models_to_generate == 0:
+        logger.info("Target model count already reached; nothing to generate")
+        return 0
+
     logger.info(f"Model generation: index {start_index} to {end_index - 1}")
-    logger.info(f"Will generate {num_models} new models")
 
     # Load dataset once before the loop
     train_loader, test_loader = load_dataset(dataset)
@@ -268,30 +279,51 @@ def generate_and_train_models(
         # Clean up to avoid memory issues
         del model
 
+    return models_to_generate
+
 
 @click.command()
 @click.option(
     "--config-dir",
     default="configs/model_gen",
-    help="Directory containing config YAML files",
+    show_default=True,
+    help="Directory containing config YAML files (used when --config is absent).",
+)
+@click.option(
+    "--config",
+    "config_paths",
+    multiple=True,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Specific YAML config to run. May be passed more than once.",
+)
+@click.option(
+    "--dataset",
+    "dataset_names",
+    multiple=True,
+    type=click.Choice(["mnist", "fmnist"], case_sensitive=False),
+    help="Dataset to generate. May be repeated; defaults to both datasets.",
 )
 @click.option(
     "--output-dir",
     default="outputs/models",
+    show_default=True,
     help="Base directory to save models",
 )
-def main(config_dir, output_dir):
+def main(config_dir, config_paths, dataset_names, output_dir):
     """Generate and train models based on configuration files."""
 
     logger.info("Starting sequential model generation from config files")
 
-    # Find all YAML config files in the config directory
-    config_files = glob.glob(os.path.join(config_dir, "*.yaml")) + glob.glob(
-        os.path.join(config_dir, "*.yml")
-    )
+    if config_paths:
+        config_files = list(config_paths)
+    else:
+        # Find all YAML config files in the config directory
+        config_files = glob.glob(
+            os.path.join(config_dir, "*.yaml")
+        ) + glob.glob(os.path.join(config_dir, "*.yml"))
 
     if not config_files:
-        logger.error(f"No config files found in {config_dir}")
+        logger.error("No config files selected")
         return
 
     config_files.sort()
@@ -318,11 +350,13 @@ def main(config_dir, output_dir):
             min_neurons = config.get("min_neurons", 10)
             max_neurons = config.get("max_neurons", 50)
             learning_rate = config.get("learning_rate", 0.001)
+            random_seed = config.get("random_seed", 42)
 
             logger.info(
                 f"Config: models={num_models}, epochs={epochs}, "
                 f"layers=[{min_layers},{max_layers}], "
-                f"neurons=[{min_neurons},{max_neurons}], lr={learning_rate}"
+                f"neurons=[{min_neurons},{max_neurons}], lr={learning_rate}, "
+                f"seed={random_seed}"
             )
 
             # Create current configuration for comparison
@@ -333,16 +367,36 @@ def main(config_dir, output_dir):
                 "max_neurons": max_neurons,
                 "learning_rate": learning_rate,
                 "epochs": epochs,
+                "random_seed": random_seed,
             }
 
-            # Train on both MNIST and Fashion MNIST
+            available_datasets = {
+                "mnist": MLDataset.MNIST,
+                "fmnist": MLDataset.FMNIST,
+            }
+            selected_dataset_names = (
+                [name.lower() for name in dataset_names]
+                if dataset_names
+                else ["mnist", "fmnist"]
+            )
             datasets_to_train = [
-                (MLDataset.MNIST, "mnist"),
-                (MLDataset.FMNIST, "fmnist"),
+                (available_datasets[name], name)
+                for name in selected_dataset_names
             ]
 
-            for dataset, dataset_name in datasets_to_train:
+            for dataset_index, (dataset, dataset_name) in enumerate(
+                datasets_to_train
+            ):
                 log_subsection(logger, f"Processing {dataset_name.upper()}")
+
+                # Use a stable, distinct seed per dataset. This controls Python's
+                # architecture randomization and PyTorch's initialization and
+                # DataLoader shuffling.
+                dataset_seed = random_seed + dataset_index
+                random.seed(dataset_seed)
+                torch.manual_seed(dataset_seed)
+                if torch.cuda.is_available():
+                    torch.cuda.manual_seed_all(dataset_seed)
 
                 # Create config-specific output directory structure
                 config_output_dir = os.path.join(output_dir, config_name)
@@ -370,7 +424,7 @@ def main(config_dir, output_dir):
 
                 # Generate and train models with timing
                 start_time = time.time()
-                generate_and_train_models(
+                generated_models = generate_and_train_models(
                     dataset=dataset,
                     num_models=num_models,
                     epochs=epochs,
@@ -387,7 +441,7 @@ def main(config_dir, output_dir):
                     output_base = "outputs"
                 append_total_timing(
                     output_base, config_name, dataset_name,
-                    num_models, total_time
+                    generated_models, total_time
                 )
 
     log_completion(logger, "Model generation completed for all configs")

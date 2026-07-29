@@ -8,6 +8,9 @@
 # Raw data files
 raw/
 
+# Documentation artifacts
+docs/
+
 # Generated model files
 outputs/
 

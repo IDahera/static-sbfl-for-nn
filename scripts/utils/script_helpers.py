@@ -10,7 +10,7 @@ import os
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Iterator
+from typing import Iterator, Sequence
 
 # ============================================================================
 # Logging Configuration
@@ -159,6 +159,20 @@ def find_subdirs(base_path: str, required: bool = True) -> list[str]:
     ]
 
     return sorted(subdirs)
+
+
+def select_subdirs(
+    base_path: str,
+    selected: Sequence[str] = (),
+    required: bool = True,
+) -> list[str]:
+    """Return all subdirectories, or only explicitly selected ones."""
+    available = find_subdirs(base_path, required=required)
+    if not selected:
+        return available
+
+    selected_set = set(selected)
+    return [name for name in available if name in selected_set]
 
 
 @dataclass

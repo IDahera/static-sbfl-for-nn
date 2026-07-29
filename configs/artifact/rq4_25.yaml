@@ -1,0 +1,9 @@
+# RQ4 reduced MNIST dataset.
+num_models: 25
+min_layers: 5
+max_layers: 40
+min_neurons: 10
+max_neurons: 100
+learning_rate: 0.001
+epochs: 1
+random_seed: 42
