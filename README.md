@@ -49,29 +49,9 @@ Run the two-model smoke test on the CPU:
 SBFL_DEVICE=cpu bash artifact/run_pipeline.sh smoke
 ```
 
-### Apple Silicon Mac: native MPS acceleration
-
-On an M-series Mac, native macOS PyTorch can use Apple's Metal Performance
-Shaders (MPS). Confirm that the terminal and Python are ARM-native and check
-that PyTorch can select MPS:
-
-```bash
-uname -m
-# Expected: arm64
-
-SBFL_DEVICE=mps python artifact/check_environment.py --expect-device mps
-```
-
-Run the smoke test and, if desired, all paper experiments:
-
-```bash
-SBFL_DEVICE=mps bash artifact/run_pipeline.sh smoke
-SBFL_DEVICE=mps bash artifact/run_pipeline.sh all
-```
-
-`all` runs `rq1-rq2`, `rq3`, and `rq4` in order using the selected device.
-Native MPS results are useful for reproduction, but their runtimes are not
-directly comparable with the paper's NVIDIA measurements.
+On an Apple Silicon Mac, use `SBFL_DEVICE=mps` instead of `cpu` to run natively
+on Apple's MPS backend; `SBFL_DEVICE=mps bash artifact/run_pipeline.sh all`
+runs `rq1-rq2`, `rq3`, and `rq4` in order.
 
 On a CUDA-capable Linux or Windows/WSL2 machine, run:
 
@@ -99,28 +79,8 @@ The first `run` checks the environment. The second runs every pipeline stage
 with two MNIST models; it verifies functionality but does not reproduce the
 paper's numerical results.
 
-### Apple Silicon Mac: Docker ARM64 CPU
-
-Docker Desktop automatically builds the `linux/arm64` CPU image on an M-series
-Mac. The environment check should report `machine: aarch64`:
-
-```bash
-docker compose build artifact
-docker compose run --rm artifact
-docker compose run --rm artifact \
-  bash artifact/run_pipeline.sh smoke
-```
-
-Docker on macOS cannot expose MPS to a Linux container, so this path uses the
-CPU. To execute every paper experiment through Docker anyway:
-
-```bash
-docker compose run --rm artifact \
-  bash artifact/run_pipeline.sh all
-```
-
-This complete CPU workflow is expected to be substantially slower than native
-MPS or CUDA.
+On Apple Silicon, Docker automatically selects the Linux ARM64 image. Docker
+cannot access macOS MPS, so this remains a CPU workflow.
 
 Run the paper experiments separately as follows:
 
