@@ -1,0 +1,4 @@
+Unmodified copy of DeepFault (https://github.com/hfeniser/DeepFault, commit 7a068e7),
+Copyright (C) 2019 Bogazici University, GPL-3.0-or-later (see LICENSE). Kept verbatim
+so that every change of the ports in ../deepfault_tf1 and ../deepfault_tf2 can be
+checked with `diff -u`. Not run by anything in this repository.

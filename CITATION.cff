@@ -3,10 +3,14 @@ message: >
   If you use this software, please cite both the software and the paper
   listed under preferred-citation.
 type: software
-title: "Static SBFL for Neural Networks"
+title: "StaticSBFL: Static Suspiciousness Prediction for Neural Networks"
 abstract: >
-  Artifact implementing static suspiciousness prediction for neural networks,
-  including the experiments accompanying the SEFM 2026 paper.
+  Replication package for static suspiciousness prediction: generates and
+  trains populations of dense neural networks, measures their hit spectra,
+  predicts the Tarantula, Ochiai and D* suspiciousness of every neuron from
+  weight statistics and architecture features without executing the model,
+  and compares the runtime and memory of the static prediction with dynamic
+  hit-spectrum tools.
 authors:
   - family-names: "Rashedi"
     given-names: "Daniel"
@@ -14,7 +18,7 @@ authors:
     affiliation: "Hamburg University of Technology"
 repository-code: "https://github.com/IDahera/static-sbfl-for-nn"
 license: MIT
-version: 1.0.0
+version: 2.0.0
 keywords:
   - "spectrum-based fault localization"
   - "neural networks"
@@ -31,7 +35,4 @@ preferred-citation:
     - family-names: "Schupp"
       given-names: "Sibylle"
       affiliation: "Hamburg University of Technology"
-  conference:
-    name: "24th International Conference on Software Engineering and Formal Methods (SEFM 2026)"
   status: submitted
-  year: 2026

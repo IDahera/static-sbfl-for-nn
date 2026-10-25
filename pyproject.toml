@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "staticsbfl"
+version = "2.0.0"
+description = "Static prediction of spectrum-based suspiciousness for the neurons of dense neural networks"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.2",
+    "torchvision>=0.17",
+    "numpy>=1.24",
+    "scipy>=1.11",
+    "scikit-learn>=1.3",
+    "joblib>=1.3",
+    "click>=8.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+# After `pip install -e .` these become commands. The Makefile calls the
+# modules directly (python -m staticsbfl.cli.<step>), in this order.
+[project.scripts]
+staticsbfl-train = "staticsbfl.cli.phase_train:main"
+staticsbfl-score = "staticsbfl.cli.phase_score:main"
+staticsbfl-neurons = "staticsbfl.cli.phase_neurons:main"
+staticsbfl-predict = "staticsbfl.cli.phase_predict:main"
+staticsbfl-status = "staticsbfl.cli.status:main"
+staticsbfl-costs = "staticsbfl.cli.costs:main"
+staticsbfl-runtime = "staticsbfl.cli.runtime_benchmark:main"
+staticsbfl-evaluate = "staticsbfl.cli.evaluate:main"
+staticsbfl-trim = "staticsbfl.cli.trim:main"
+staticsbfl-cache-size = "staticsbfl.cli.cache_size:main"
+
+[tool.setuptools]
+packages = [
+    "staticsbfl",
+    "staticsbfl.benchmark",
+    "staticsbfl.cli",
+    "staticsbfl.data",
+    "staticsbfl.dataset",
+    "staticsbfl.evaluation",
+    "staticsbfl.log",
+    "staticsbfl.models",
+    "staticsbfl.suspiciousness",
+    "staticsbfl.training",
+    "staticsbfl.utils",
+    "staticsbfl.variation",
+    "staticsbfl.viz",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

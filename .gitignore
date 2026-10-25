@@ -1,88 +1,26 @@
-# Static SBFL for Neural Networks - .gitignore
-# This file specifies intentionally untracked files that Git should ignore
+# Generated artefacts: datasets, trained models, spectra, tables, runtime records.
+cache/
 
-# =============================================================================
-# Data and Model Directories
-# =============================================================================
+# Local, uncommitted Makefile overrides (e.g. PYTHON=...).
+config.mk
 
-# Raw data files
-raw/
-
-# Documentation artifacts
-docs/
-
-# Generated model files
-outputs/
-
-# Log files directory
-log/
-
-
-# =============================================================================
 # Python
-# =============================================================================
-
-# Byte-compiled / optimized / DLL files
-*.pyc
 __pycache__/
-*.pyo
-*.pyd
-.Python
-
-# Distribution / packaging
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
+*.py[cod]
 *.egg-info/
-.installed.cfg
-*.egg
+build/
+dist/
+.pytest_cache/
 
-# =============================================================================
-# IDEs and Editors
-# =============================================================================
+# Environments
+.venv/
+venv/
+.env
 
-# VSCode
+# Editors and OS
 .vscode/
-*.code-workspace
-
-# PyCharm
 .idea/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# =============================================================================
-# OS Generated Files
-# =============================================================================
-
-# macOS
+.ipynb_checkpoints/
 .DS_Store
-.AppleDouble
-.LSOverride
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# Linux
-*~
-
-# =============================================================================
-# Temporary Files
-# =============================================================================
-
-# Temporary files
-*.tmp
-*.temp
 *.swp
-*.swo
+*~

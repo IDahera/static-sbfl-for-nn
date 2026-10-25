@@ -1,0 +1,16 @@
+This directory is a MODIFIED version of DeepFault.
+
+  DeepFault: Fault Localization for Deep Neural Networks
+  Copyright (C) 2019 Bogazici University
+  https://github.com/hfeniser/DeepFault, commit 7a068e7
+  Licensed under the GNU General Public License, version 3 or (at your option)
+  any later version -- see LICENSE in this directory.
+
+Modifications Copyright (C) 2026 Daniel Rashedi, dated 2026-10-20:
+ported to Python 3.14 and TensorFlow 2.22 in graph mode (tf_keras), adapted to models of the
+diss-code repository. Every modified line carries a `# PORT:` comment; every
+change, its reason and its possible effect on measured runtimes is listed in
+README.md. The unmodified sources are in ../deepfault_upstream/.
+
+This directory, ../common/ and ../deepfault_upstream/ are distributed under the
+GPL-3.0-or-later, independently of the MIT licence of the rest of diss-code.
