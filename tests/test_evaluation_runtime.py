@@ -55,10 +55,14 @@ def test_tool_rows_report_the_true_median_and_maximum_and_where_it_is(runs):
     df = rows["deepfault_tf1"]
     assert df.seconds_median == 200.0 and df.seconds_max == 300.0 and df.seconds_max_model == M2
     assert df.seconds_total == 400.0
+    assert df.seconds_mean == 200.0 and df.seconds_min == 100.0
+    assert df.memory_mean == pytest.approx((200 + 900) / 2) and df.memory_min == 200.0
     assert df.memory_max == 900.0 and df.memory_max_model == M2 and df.process_max == 1500.0
     mlp = rows["staticsbfl_mlp"]
     assert mlp.seconds_median == pytest.approx(0.035) and mlp.seconds_max == 0.05
     assert mlp.memory_median == pytest.approx((6 + 30) / 2) and mlp.memory_max == 30.0
+    assert mlp.seconds_mean == pytest.approx(0.035) and mlp.seconds_min == 0.02
+    assert mlp.memory_mean == pytest.approx(18.0) and mlp.memory_min == 6.0
     assert rows["hs_pt_cpu"].status == {"ok": 4, "failed": 1}
     # reporting order follows TOOL_LABELS, not the order of the runs
     assert [r.tool for r in rt.tool_rows(runs)] == [
@@ -76,6 +80,8 @@ def test_the_maximum_matches_a_brute_force_maximum_on_random_runs():
         assert row.seconds_max == pytest.approx(max(medians.values()))
         assert row.seconds_max_model == max(medians, key=medians.get)
         assert row.seconds_median == pytest.approx(float(np.median(list(medians.values()))))
+        assert row.seconds_mean == pytest.approx(float(np.mean(list(medians.values()))))
+        assert row.seconds_min == pytest.approx(min(medians.values()))
 
 
 def test_per_design_rows_group_seeds_and_sort_by_size(runs):

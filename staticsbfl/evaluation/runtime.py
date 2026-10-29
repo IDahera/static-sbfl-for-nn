@@ -265,17 +265,31 @@ def _max(values) -> Optional[float]:
     return max(values) if values else None
 
 
+def _mean(values) -> Optional[float]:
+    values = list(values)
+    return statistics.fmean(values) if values else None
+
+
+def _min(values) -> Optional[float]:
+    values = list(values)
+    return min(values) if values else None
+
+
 @dataclass
 class ToolRow:
     """Per-tool aggregates over the models of one runtime run."""
     tool: str
     models: int
+    seconds_mean: Optional[float]
     seconds_median: Optional[float]
+    seconds_min: Optional[float]
     seconds_max: Optional[float]
     seconds_max_model: Optional[str]
     seconds_total: Optional[float]
     setup_median: Optional[float]
+    memory_mean: Optional[float]
     memory_median: Optional[float]
+    memory_min: Optional[float]
     memory_max: Optional[float]
     memory_max_model: Optional[str]
     process_median: Optional[float]
@@ -301,7 +315,11 @@ def _argmax(values: Dict[str, float]) -> Optional[str]:
 
 
 def tool_rows(runs: Sequence[dict]) -> List[ToolRow]:
-    """Per tool: median and maximum over models (each model = median of its repeats)."""
+    """Per tool: mean, median, minimum and maximum over models (each model = median of its repeats).
+
+    The mean and the median are both kept because they differ here: a tool whose
+    cost grows with the model (DeepFault) has a mean well above its median.
+    """
     seconds = per_model_medians(runs, "per_model_seconds")
     setup = per_model_medians(runs, "setup_seconds")
     memory = per_model_medians(runs, "per_model_peak_above_start_bytes")
@@ -318,10 +336,12 @@ def tool_rows(runs: Sequence[dict]) -> List[ToolRow]:
         s, m = seconds.get(tool, {}), memory.get(tool, {})
         out.append(ToolRow(
             tool=tool, models=len(s),
-            seconds_median=_median(s.values()), seconds_max=_max(s.values()), seconds_max_model=_argmax(s),
+            seconds_mean=_mean(s.values()), seconds_median=_median(s.values()),
+            seconds_min=_min(s.values()), seconds_max=_max(s.values()), seconds_max_model=_argmax(s),
             seconds_total=sum(s.values()) if s else None,
             setup_median=_median(setup.get(tool, {}).values()),
-            memory_median=_median(m.values()), memory_max=_max(m.values()), memory_max_model=_argmax(m),
+            memory_mean=_mean(m.values()), memory_median=_median(m.values()),
+            memory_min=_min(m.values()), memory_max=_max(m.values()), memory_max_model=_argmax(m),
             process_median=_median(process.get(tool, {}).values()),
             process_max=_max(process.get(tool, {}).values()),
             gpu_median=_median(gpu.get(tool, {}).values()),

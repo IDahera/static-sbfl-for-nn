@@ -272,13 +272,15 @@ def print_runtime(summary: Optional[RuntimeSummary], mode: str, dataset: str, hi
     print_measurement_note(summary.environment)
 
     plain(logger, "")
-    plain(logger, style("  Per tool (median over models; max with its model)", "bold"))
-    log_table(logger, ["tool", "models", "per model", "max", "total", "setup", "mem/model", "max",
-                       "process", "gpu", "runs"],
-              [[t.label, t.models, fmt_seconds(t.seconds_median), fmt_seconds(t.seconds_max),
-                fmt_seconds(t.seconds_total), fmt_seconds(t.setup_median), fmt_bytes(t.memory_median),
-                fmt_bytes(t.memory_max), fmt_bytes(t.process_median), fmt_bytes(t.gpu_median),
-                t.as_dict()["status"]] for t in summary.tools], align="l" + "r" * 9 + "l")
+    plain(logger, style("  Per tool (mean / median / min / max over models; max with its model)", "bold"))
+    log_table(logger, ["tool", "models", "mean", "median", "min", "max", "total", "setup",
+                       "mem mean", "median", "min", "max", "process", "gpu", "runs"],
+              [[t.label, t.models, fmt_seconds(t.seconds_mean), fmt_seconds(t.seconds_median),
+                fmt_seconds(t.seconds_min), fmt_seconds(t.seconds_max),
+                fmt_seconds(t.seconds_total), fmt_seconds(t.setup_median), fmt_bytes(t.memory_mean),
+                fmt_bytes(t.memory_median), fmt_bytes(t.memory_min), fmt_bytes(t.memory_max),
+                fmt_bytes(t.process_median), fmt_bytes(t.gpu_median),
+                t.as_dict()["status"]] for t in summary.tools], align="l" + "r" * 13 + "l")
     for t in summary.tools:
         if t.seconds_max_model:
             plain(logger, style(f"    {t.label}: slowest model {t.seconds_max_model}, "
@@ -286,7 +288,8 @@ def print_runtime(summary: Optional[RuntimeSummary], mode: str, dataset: str, hi
         for row in summary.runs:
             if row["tool"] == t.tool and row.get("status") in ("failed", "timeout", "unreadable"):
                 plain(logger, style(f"      ! {row['model']} r{row['repeat']}: {row['status']} {row.get('detail', '')[:120]}", "yellow"))
-    plain(logger, style("    mem/model = footprint above the set-up process while one model is analysed; "
+    plain(logger, style("    time per model and mem = per model (median of its repeats), then mean/median/min/max over models; "
+                        "mem = footprint above the set-up process while one model is analysed; "
                         "process = whole-process high-water mark; gpu = MPS allocator share (sampled)", "dim"))
 
     if summary.designs:

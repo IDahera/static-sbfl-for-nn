@@ -25,7 +25,8 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
 from staticsbfl.log.console import display_path
-from staticsbfl.utils.paths import RUNTIME_DIR, ensure_dir, variant_models_csv, variant_timings
+from staticsbfl.utils import paths
+from staticsbfl.utils.paths import ensure_dir, variant_models_csv, variant_timings
 from staticsbfl.variation import PHASE_NAMES
 
 MODES = ("light", "heavy")
@@ -40,8 +41,12 @@ COLUMNS = (
 
 
 def costs_csv() -> Path:
-    """Where the cost report is written: ``cache/runtime/costs.csv``."""
-    return RUNTIME_DIR / "costs.csv"
+    """Where the cost report is written: ``cache/runtime/costs.csv``.
+
+    Read through the module at call time, not bound at import, so that a test
+    redirecting ``paths.RUNTIME_DIR`` also redirects this file.
+    """
+    return paths.RUNTIME_DIR / "costs.csv"
 
 
 def _stats(values: List[float]) -> Dict[str, Optional[float]]:

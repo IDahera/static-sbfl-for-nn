@@ -533,22 +533,32 @@ def runtime_section(summary: RuntimeSummary) -> str:
         parts.append(f'<p class="note">{esc(env.get("cpu"))} · {esc(env.get("platform"))} · '
                      f'{esc(env.get("logical_cpus"))} logical CPUs · python {esc(env.get("python"))}{versions}</p>')
     data = {"mode": summary.mode}
-    fastest = min((t.seconds_median for t in summary.tools if t.seconds_median is not None), default=None)
-    smallest = min((t.memory_median for t in summary.tools if t.memory_median is not None), default=None)
+    def lowest(attribute):
+        return min((getattr(t, attribute) for t in summary.tools if getattr(t, attribute) is not None), default=None)
+
+    def cell(t, attribute, fmt):
+        value = getattr(t, attribute)
+        return fmt(value), "best" if value is not None and value == best[attribute] else ""
+
+    best = {a: lowest(a) for a in ("seconds_mean", "seconds_median", "seconds_min", "seconds_max",
+                                   "memory_mean", "memory_median", "memory_min", "memory_max")}
     body = []
     for t in summary.tools:
         body.append(row([
             (tag("tool", t.tool).replace(f">{esc(t.tool)}<", f">{esc(t.label)}<"), "l"), (esc(t.models), ""),
-            (fmt_seconds(t.seconds_median), "best" if t.seconds_median == fastest else ""),
-            (fmt_seconds(t.seconds_max), ""), (esc(t.seconds_max_model or "–"), "l"), (fmt_seconds(t.seconds_total), ""),
+            cell(t, "seconds_mean", fmt_seconds), cell(t, "seconds_median", fmt_seconds),
+            cell(t, "seconds_min", fmt_seconds), cell(t, "seconds_max", fmt_seconds),
+            (esc(t.seconds_max_model or "–"), "l"), (fmt_seconds(t.seconds_total), ""),
             (fmt_seconds(t.setup_median), ""),
-            (fmt_bytes(t.memory_median), "best" if t.memory_median == smallest else ""), (fmt_bytes(t.memory_max), ""),
+            cell(t, "memory_mean", fmt_bytes), cell(t, "memory_median", fmt_bytes),
+            cell(t, "memory_min", fmt_bytes), cell(t, "memory_max", fmt_bytes),
             (fmt_bytes(t.process_median), ""), (fmt_bytes(t.process_max), ""), (fmt_bytes(t.gpu_median), ""),
             (esc(t.as_dict()["status"]), "l"),
         ], data={**data, "tool": t.tool, "marked": "1"}))
     parts.append("<h3>Per tool</h3>" + table(
-        [("tool", "l"), ("models", "r"), ("per model (median)", "r"), ("max", "r"), ("slowest model", "l"),
-         ("total", "r"), ("setup", "r"), ("mem/model (median)", "r"), ("max", "r"), ("process max (median)", "r"),
+        [("tool", "l"), ("models", "r"), ("per model (mean)", "r"), ("median", "r"), ("min", "r"), ("max", "r"),
+         ("slowest model", "l"), ("total", "r"), ("setup", "r"), ("mem/model (mean)", "r"), ("median", "r"),
+         ("min", "r"), ("max", "r"), ("process max (median)", "r"),
          ("max", "r"), ("gpu", "r"), ("runs", "l")], "".join(body)))
 
     if summary.designs:

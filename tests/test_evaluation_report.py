@@ -15,6 +15,7 @@ import re
 import pytest
 from click.testing import CliRunner
 
+from staticsbfl.evaluation import costs
 from staticsbfl.utils import paths
 from staticsbfl.viz import html_report
 from staticsbfl.cli import evaluate
@@ -147,3 +148,12 @@ def test_the_log_explains_the_populations_and_scopes(cache):
     output = CliRunner().invoke(evaluate.main, ["--phase", "phase1"]).output  # with legend and glossary
     assert "designed" in output and "only neurons that fired at least once" in output
     assert "Spread of spearman_model by model type" in output
+
+
+def test_the_cost_report_stays_inside_the_redirected_cache(cache):
+    # costs.csv used to be bound to the real cache at import, so this suite
+    # overwrote cache/runtime/costs.csv with rows pointing at pytest's tmp dirs.
+    invoke()
+    written = cache / "runtime" / "costs.csv"
+    assert written.exists()
+    assert costs.costs_csv() == written

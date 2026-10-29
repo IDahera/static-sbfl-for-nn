@@ -1,0 +1,31 @@
+# docker compose run --rm staticsbfl make smoke          CPU, any host (Linux, Windows, Intel and Apple-silicon Macs)
+# docker compose --profile gpu run --rm staticsbfl-gpu make light    NVIDIA GPU (Linux, or Windows with WSL2)
+#
+# Results are written to ./cache on the host, exactly as in a native run.
+services:
+  staticsbfl:
+    build:
+      context: .
+      target: final
+    image: static-sbfl-for-nn:2.0.0-cpu
+    environment:
+      DEVICE: cpu
+    volumes:
+      - ./cache:/workspace/cache
+    working_dir: /workspace
+    command: ["make", "smoke"]
+
+  staticsbfl-gpu:
+    profiles: ["gpu"]
+    platform: linux/amd64
+    build:
+      context: .
+      target: cuda
+    image: static-sbfl-for-nn:2.0.0-cuda
+    environment:
+      DEVICE: cuda
+    volumes:
+      - ./cache:/workspace/cache
+    working_dir: /workspace
+    gpus: all
+    command: ["make", "light"]

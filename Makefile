@@ -46,7 +46,8 @@ DATASET ?= cifar10
 .PHONY: help venv install test \
         train score neurons predict preview phase \
         light heavy debug status evaluate \
-        runtime-setup costs runtime-estimators runtime all trim cache-size \
+        runtime-setup costs runtime-estimators runtime smoke all trim cache-size \
+        paper-phase1 paper-phase2 paper-phase3 paper-runtime \
         clean-variants clean-variants-all clean-debug clean-runtime clean
 
 help:
@@ -58,6 +59,8 @@ help:
 	@echo "  make light                              all four phases, 200 fit / 40 eval models, 3 epochs"
 	@echo "  make heavy                              all four phases, 400 fit / 80 eval models, 10 epochs"
 	@echo "  make debug                              pipeline check: 20 / 4 models, 1 epoch, cache/variants-debug/"
+	@echo "  make smoke                              debug + CPU runtime (no DeepFault) + evaluate: every result type in minutes"
+	@echo "  make paper-phase1|2|3, paper-runtime    the paper's tables, one target per table (README)"
 	@echo "  make status                             what is done / missing, time and disk"
 	@echo "  make preview PHASE=phase2               list the population, build nothing"
 	@echo "  make phase   PHASE=phase1               one phase end to end"
@@ -245,6 +248,37 @@ runtime:
 	    $(MAKE) --no-print-directory runtime-estimators VMODE=$$mode DATASET=$(DATASET) || exit 1; fi; \
 	  $(KEEP_AWAKE) $(PYTHON) -m staticsbfl.cli.runtime_benchmark --mode $$mode --dataset $(DATASET) $(RUNTIME_ARGS) || exit 1; \
 	done
+
+# The paper's results, one target per table (see README, "Reproduce the paper").
+# PAPER_RUNTIME_TOOLS empty = every tool, DeepFault included (needs make
+# runtime-setup); the Docker images set it to the tools that run in a container.
+PAPER_RUNTIME_TOOLS ?=
+paper-phase1:
+	@$(MAKE) --no-print-directory phase PHASE=phase1 VMODE=light DATASET=$(DATASET)
+	@$(MAKE) --no-print-directory phase PHASE=phase1 VMODE=heavy DATASET=$(DATASET)
+	@$(MAKE) --no-print-directory evaluate SCOPE=all DATASET=$(DATASET) EVAL_ARGS='--phase phase1'
+paper-phase2:
+	@$(MAKE) --no-print-directory phase PHASE=phase2 VMODE=heavy DATASET=$(DATASET)
+	@$(MAKE) --no-print-directory evaluate VMODE=heavy SCOPE=all DATASET=$(DATASET) EVAL_ARGS='--phase phase2'
+paper-phase3:
+	@$(MAKE) --no-print-directory phase PHASE=phase3 VMODE=heavy DATASET=$(DATASET)
+	@$(MAKE) --no-print-directory evaluate VMODE=heavy SCOPE=all DATASET=$(DATASET) EVAL_ARGS='--phase phase3'
+paper-runtime:
+	@$(MAKE) --no-print-directory phase PHASE=phase4 VMODE=heavy DATASET=$(DATASET)
+	@$(MAKE) --no-print-directory runtime VMODE=heavy DATASET=$(DATASET) RUNTIME_ARGS='$(PAPER_RUNTIME_TOOLS)'
+	@$(MAKE) --no-print-directory costs
+	@$(MAKE) --no-print-directory evaluate VMODE=heavy SCOPE=all DATASET=$(DATASET) EVAL_ARGS='--phase phase4'
+
+# A quick end-to-end check of every result type (minutes, not hours): the debug
+# populations of all four phases, a runtime run of StaticSBFL and HS@pt on the
+# CPU (no DeepFault, which needs its own conda environments), and the
+# evaluation. Its numbers only show that everything runs; do not read them.
+SMOKE_TOOLS = --tool staticsbfl_gradient_boosting --tool staticsbfl_mlp --tool hs_pt_cpu
+smoke:
+	@$(MAKE) --no-print-directory debug DATASET=$(DATASET)
+	@$(MAKE) --no-print-directory runtime VMODE=debug DATASET=$(DATASET) \
+	  RUNTIME_ARGS='$(SMOKE_TOOLS) --repeats 1'
+	@$(MAKE) --no-print-directory evaluate VMODE=debug DATASET=$(DATASET)
 
 # The whole study, one step after the other; each step can also be run on its
 # own, and evaluate shows whatever exists, with placeholders for the rest.

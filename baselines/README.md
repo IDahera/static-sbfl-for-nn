@@ -10,8 +10,8 @@ unmodified upstream sources sit next to the ports for `diff -u`.
 
 | directory | name in the paper | upstream | execution model | environment |
 |---|---|---|---|---|
-| [`deepfault_tf1/`](deepfault_tf1/README.md) | **DF@tf1** | [hfeniser/DeepFault](https://github.com/hfeniser/DeepFault) `7a068e7` | TensorFlow 1: static graph + `Session` (`tf.compat.v1`, eager off), Keras 2 API (`tf_keras`) | conda `deepfault-tf1` |
-| [`deepfault_tf2/`](deepfault_tf2/README.md) | **DF@tf2** | same | TensorFlow 2: eager, Keras 3 | conda `deepfault-tf2` |
+| [`deepfault_tf1/`](deepfault_tf1/README.md) | **DF@graph** (`tf1` here) | [hfeniser/DeepFault](https://github.com/hfeniser/DeepFault) `7a068e7` | TensorFlow 1: static graph + `Session` (`tf.compat.v1`, eager off), Keras 2 API (`tf_keras`) | conda `deepfault-tf1` |
+| [`deepfault_tf2/`](deepfault_tf2/README.md) | **DF@eager** (`tf2` here) | same | TensorFlow 2: eager, Keras 3 | conda `deepfault-tf2` |
 | [`icsoft_pt/`](icsoft_pt/README.md) | **ICSoft@pt** (opt-in) | `fast-hs-adversarial-input-gen` `6e906ed` (the code the ICSOFT 2025 paper links; URL withheld for double-blind review) | PyTorch: one pass per layer, every activation stored, counts summed over the stored tensor | main env |
 | [`deepfault_upstream/`](deepfault_upstream/) | — | DeepFault, verbatim | Keras 2.3.1 / TF 1.13 | (Python ≤ 3.7) |
 | [`icsoft_upstream/`](icsoft_upstream/) | — | ICSoft, verbatim (helpers, notebook with its outputs cleared, config) | | |

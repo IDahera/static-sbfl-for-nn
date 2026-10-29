@@ -129,12 +129,14 @@ COLUMNS: Dict[str, str] = {
     "column": "which result column the statistics describe.",
     # runtime
     "tool": "the measured implementation (see the glossary).",
-    "per model (median)": "load + analyse one model, median over models (each model: median over repeats).",
+    "per model (mean)": "load + analyse one model, mean over models (each model: median over repeats); "
+                        "the next columns give the median, min and max over the same models.",
     "max": "largest value over the models.",
     "slowest model": "the model with the largest per-model time.",
     "total": "sum over the models.",
     "setup": "framework import + test data or predictor load, paid once per session.",
-    "mem/model (median)": "footprint above the set-up process while one model is analysed.",
+    "mem/model (mean)": "footprint above the set-up process while one model is analysed, mean over models; "
+                        "the next columns give the median, min and max.",
     "process max (median)": "high-water mark of the whole process footprint, incl. framework import.",
     "gpu": "MPS allocator share (sampled), MPS runs only.",
     "runs": "measured processes by status.",

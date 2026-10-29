@@ -17,7 +17,7 @@ import click
 from staticsbfl.evaluation import costs
 from staticsbfl.log import evaluation as report
 from staticsbfl.log.console import add_file_log, configure_logging, display_path, phase_banner, plain, style
-from staticsbfl.utils.paths import RUNTIME_DIR
+from staticsbfl.utils import paths
 
 
 @click.command()
@@ -26,7 +26,7 @@ from staticsbfl.utils.paths import RUNTIME_DIR
 def main(modes, datasets):
     """Training and step times of the whole run, light and heavy apart."""
     configure_logging()
-    add_file_log(RUNTIME_DIR / "costs.log", mode="w", timestamps=False)
+    add_file_log(paths.RUNTIME_DIR / "costs.log", mode="w", timestamps=False)
     modes, datasets = tuple(modes) or costs.MODES, tuple(datasets) or costs.DATASETS
     phase_banner(report.logger, "StaticSBFL · COST OF THE WHOLE RUN · " + " / ".join(modes), [
         ("Reads", ["<root>/<phase>/models.csv (train_seconds per model)",
@@ -35,7 +35,7 @@ def main(modes, datasets):
         ("Columns", ["per model = mean training time of a timed model; sd across models",
                      "per m-ep = per model and epoch -- comparable between light and heavy",
                      "(fit) = predictor fitting alone, part of predict"]),
-    ], outputs=[(costs.costs_csv(), "one row per mode/dataset/phase/population/step"), RUNTIME_DIR / "costs.log"])
+    ], outputs=[(costs.costs_csv(), "one row per mode/dataset/phase/population/step"), paths.RUNTIME_DIR / "costs.log"])
     rows = costs.collect(modes, datasets)
     report.print_costs(rows, modes, datasets)
     path = costs.write(rows)
